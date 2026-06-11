@@ -237,7 +237,7 @@ $('#claim-btn').onclick = async () => {
 
 /* =====================================================================
    연습 항해 — 인터랙티브 튜토리얼
-   학생이 직접 한 라운드(때로는 두 라운드)를 플레이하며 룰을 익힌다.
+   학생이 직접 세 라운드를 플레이하며 명예, 강화, 강화 투표까지 익힌다.
    서버와 무관하게 클라이언트에서만 동작하는 시뮬레이션.
    ===================================================================== */
 const TUT = {
@@ -245,25 +245,39 @@ const TUT = {
   crew: ['미루', '한솔', '도윤', '바다'],   // 나(+4명) = 5인 모둠
   rounds: [
     {
-      title: '첫 폭풍',
-      pub: 18, lo: 5, hi: 11, storm: 26, standard: 7, need: 4,
-      crewGive: [6, 6, 5, 5],   // 합계 22 → 나의 선택이 도시 생사를 가른다
+      title: '명예를 노릴 수 있는 첫 폭풍',
+      lesson: '기준 이상으로 가장 많이 기여하면 명예 +2점을 받을 수 있어요.',
+      pub: 21, lo: 6, hi: 12, storm: 31, standard: 7, need: 4,
+      crewGive: [7, 7, 7, 6],
       promises: [
-        '안전하게 7개씩 내자! 도시 무너지면 다 같이 패배야.',
-        '난 6개 낼게. 조금은 남겨야지…',
-        '난 5개 정도? 점수도 챙기고 싶어.',
-        '다 같이 막아보자, 믿는다!',
+        '이번 기준은 7개야. 기준만큼 내면 같이 막을 수 있어.',
+        '나도 7개 낼게. 명예도 노려볼래.',
+        '기준 이상 4명이면 강화도 쌓인다며?',
+        '난 6개만 낼 수도 있어… 그래도 막히지 않을까?',
       ],
     },
     {
-      title: '거센 폭풍, 그리고 욕심',
-      pub: 24, lo: 8, hi: 16, storm: 36, standard: 9, need: 4,
-      crewGive: [3, 2, 4, 2],   // 합계 11 → 친구들이 자원을 아낀다(무임승차)
+      title: '방파제 강화 쌓기',
+      lesson: '방어 성공 + 기준 이상 인원 80% 달성 시 방파제 강화가 +1 쌓여요.',
+      pub: 25, lo: 7, hi: 13, storm: 35, standard: 7, need: 4,
+      crewGive: [8, 8, 7, 6],
       promises: [
-        '이번엔 좀 챙길래. 남들이 내겠지.',
-        '글쎄… 난 조금만 낼래.',
-        '폭풍 세지만… 점수도 필요하잖아?',
-        '에이, 설마 무너지겠어?',
+        '이번에도 기준 이상 4명을 맞추면 강화가 2개가 돼.',
+        '난 8개 낼게. 튼튼하게 가자.',
+        '강화 2개면 다음 실패 때 투표로 피해를 막을 수 있대.',
+        '나는 6개만 내고 싶어. 누가 더 내주겠지?',
+      ],
+    },
+    {
+      title: '실패 후 강화 사용 투표',
+      lesson: '강화 2개가 있으면 실패했을 때 모둠 투표로 피해를 막을지 정해요.',
+      pub: 20, lo: 5, hi: 11, storm: 27, standard: 7, need: 4,
+      crewGive: [4, 3, 3, 4],
+      promises: [
+        '이번엔 좀 아껴도 되지 않을까?',
+        '강화 2개 있으니까 실패하면 쓰면 되잖아.',
+        '지금 쓸까, 다음 폭풍을 위해 아낄까?',
+        '누가 일부러 적게 내는 건 아니겠지?',
       ],
     },
   ],
@@ -273,7 +287,16 @@ const TUT = {
 const tutStage = document.getElementById('tut-stage');
 
 function tutStart() {
-  TUT.state = { round: 0, step: 0, choice: null, damage: 0, totalPoints: 0, results: [] };
+  TUT.state = {
+    round: 0,
+    step: 0,
+    choice: null,
+    damage: 0,
+    reinforcement: 0,
+    totalPoints: 0,
+    results: [],
+    shieldDecision: null,
+  };
   tutRender();
 }
 
@@ -296,6 +319,7 @@ function tutTopbar() {
     <span class="badge">바다모둠</span>
     <b style="font-size:15px">연습 ${r + 1}라운드</b>
     <span style="font-size:14px">내 점수 <b>${TUT.state.totalPoints}</b></span>
+    <span class="badge amber">강화 ${TUT.state.reinforcement}/2</span>
     ${dmg}
     <span class="crew">상인 5명 · 1인당 자원 ${TUT.cubes}개</span>
   </div>`;
@@ -305,15 +329,37 @@ function tutResult(round, choice) {
   const crewSum = round.crewGive.reduce((a, b) => a + b, 0);
   const total = crewSum + choice;
   const ok = total >= round.storm;
-  const damage = ok ? 0 : (total < 0.75 * round.storm ? 2 : 1);
+  const pendingDamage = ok ? 0 : (total < 0.75 * round.storm ? 2 : 1);
   // 명예: 방어 성공 시, 기준 이상 기여자 중 최다 기여자
   const all = [...round.crewGive, choice];
-  const metStandard = all.filter(v => v >= round.standard);
-  const top = metStandard.length ? Math.max(...metStandard) : 0;
+  const standardMetCount = all.filter(v => v >= round.standard).length;
+  const belowStandardCount = all.length - standardMetCount;
+  const cooperationSuccess = ok && standardMetCount >= round.need;
+  const top = standardMetCount ? Math.max(...all.filter(v => v >= round.standard)) : 0;
   const iAmTop = ok && choice >= round.standard && choice === top && choice > 0;
+  const shieldVoteOpen = !ok && TUT.state.reinforcement >= 2;
   const kept = TUT.cubes - choice;
   const honor = iAmTop ? 2 : 0;
-  return { crewSum, total, ok, damage, kept, honor, iAmTop, surplus: ok ? total - round.storm : 0, shortfall: ok ? 0 : round.storm - total };
+  return {
+    crewSum, total, ok, pendingDamage, kept, honor, iAmTop,
+    standardMetCount, belowStandardCount, cooperationSuccess, shieldVoteOpen,
+    surplus: ok ? total - round.storm : 0,
+    shortfall: ok ? 0 : round.storm - total,
+  };
+}
+
+function tutEffect(base, shieldDecision) {
+  const damageBlocked = base.shieldVoteOpen && shieldDecision === 'yes';
+  const damage = base.ok ? 0 : damageBlocked ? 0 : base.pendingDamage;
+  let reinforcementDelta = base.cooperationSuccess ? 1 : 0;
+  if (damageBlocked) reinforcementDelta -= 2;
+  return {
+    ...base,
+    damage,
+    damageBlocked,
+    shieldDecision: base.shieldVoteOpen ? shieldDecision : null,
+    reinforcementDelta,
+  };
 }
 
 function tutRender() {
@@ -340,8 +386,9 @@ function tutForecast(round) {
       <p class="num" style="color:var(--storm)">${round.lo} ~ ${round.hi}</p>
       <p class="banner" style="background:var(--storm-pale);color:var(--storm);justify-content:center">
         폭풍은 <b style="margin:0 4px">${round.pub + round.lo} ~ ${round.pub + round.hi}</b> 사이로 와요</p>
+      <p class="tut-note" style="background:var(--teal-pale);border-color:rgba(13,90,78,.2);color:var(--teal-dark)">${round.lesson}</p>
       <p class="tut-note">이번 <b>항구 기준</b>은 <b>${round.standard}개</b>예요. 이만큼 이상 내야
-      '명예'와 '공동 협력'에 들어가요. 우리 자원은 다 합쳐 ${TUT.cubes * 5}개… 막을 수 있을까요?</p>
+      명예 후보와 공동 협력 인원에 들어가요. 기준 이상 기여자가 <b>${round.need}명</b> 이상이면 공동 협력 성공이에요.</p>
     </div>
     <div class="tut-nav">
       <button class="btn big" id="tut-next">🗣 협상하러 가기</button>
@@ -386,6 +433,7 @@ function tutContribute(round) {
       <h3 class="tut-title">몰래 정하세요</h3>
       <p class="muted">상자를 눌러 방파제에 낼 개수를 정해요. 아무도 볼 수 없어요.</p>
       <p class="rule-line center">이번 항구 기준 <b>${round.standard}개</b> · 폭풍 예보 ${round.pub + round.lo}~${round.pub + round.hi}</p>
+      <p class="muted">처음이라면 <b>기준만큼 선택</b>을 눌러 명예와 강화를 어떻게 받는지 확인해 보세요.</p>
     </div>
     <div class="cubes" id="tut-cubes">
       ${Array.from({ length: n }, (_, i) =>
@@ -395,7 +443,10 @@ function tutContribute(round) {
       <div><p class="lbl">🌊 방파제에</p><p class="val" style="color:var(--teal-dark)">${chosen}</p></div>
       <div><p class="lbl">📦 내 창고에</p><p class="val" style="color:var(--amber-dark)">${kept}</p></div>
     </div>
-    <p class="center"><button class="btn small ghost" id="tut-zero">0개 내기</button></p>
+    <p class="center">
+      <button class="btn small ghost" id="tut-zero">0개 내기</button>
+      <button class="btn small" id="tut-standard">기준 ${round.standard}개 선택</button>
+    </p>
     <div class="tut-nav">
       <button class="btn ghost back" id="tut-back">← 협상</button>
       <button class="btn big" id="tut-next" ${s.choice === null ? 'disabled' : ''}>이대로 제출하기</button>
@@ -408,6 +459,7 @@ function tutContribute(round) {
     tutRender();
   });
   document.getElementById('tut-zero').onclick = () => { s.choice = 0; tutRender(); };
+  document.getElementById('tut-standard').onclick = () => { s.choice = round.standard; tutRender(); };
   document.getElementById('tut-back').onclick = () => { s.step = 1; tutRender(); };
   document.getElementById('tut-next').onclick = () => {
     if (s.choice === null) return;
@@ -417,28 +469,37 @@ function tutContribute(round) {
 
 function tutResolve(round) {
   const s = TUT.state;
-  const res = tutResult(round, s.choice);
+  const base = tutResult(round, s.choice);
+  const waitingForShieldVote = base.shieldVoteOpen && s.shieldDecision === null;
+  const res = s.results[s.round] || tutEffect(base, s.shieldDecision);
   // 이 라운드 효과를 한 번만 누적
-  if (!s.results[s.round]) {
+  if (!s.results[s.round] && !waitingForShieldVote) {
     s.results[s.round] = res;
     s.totalPoints += res.kept + res.honor;
     s.damage += res.damage;
+    s.reinforcement = Math.max(0, s.reinforcement + res.reinforcementDelta);
   }
-  const fell = s.damage >= 3;
+  const fell = !waitingForShieldVote && s.damage >= 3;
   const pct = Math.min(100, Math.round(res.total / Math.max(round.storm, res.total, 1) * 100));
   const markPct = Math.min(98, Math.round(round.storm / Math.max(round.storm, res.total, 1) * 100));
 
   // 선택에 따른 맞춤 코칭
   let coach = '';
-  if (s.round === 0) {
-    if (!res.ok) coach = `너무 아꼈어요. 내 점수는 챙겼지만 <b>도시가 피해를 입었어요</b>. 모두가 이렇게 생각하면 도시는 가라앉아요. 균형이 핵심이에요!`;
-    else if (s.choice >= 9) coach = `막아냈지만 거의 다 냈네요! 남는 ${res.surplus}개는 파도에 쓸려가 <b>아까워요</b>. 점수(남긴 자원)는 ${res.kept}개로 적어요. 딱 필요한 만큼만 내는 게 고수예요.`;
-    else if (res.iAmTop) coach = `완벽해요! 막아냈고, 항구 기준 이상 최다 기여로 <b>명예 토큰(+2점)</b>까지 받았어요. 도시도 지키고 점수도 챙겼죠.`;
-    else coach = `잘했어요! 도시를 지키면서 ${res.kept}개를 창고에 남겨 점수로 챙겼어요. 이게 이 게임의 줄타기예요.`;
+  if (waitingForShieldVote) {
+    coach = `이번엔 막지 못했지만 <b>방파제 강화 2개</b>가 있어서 투표가 열렸어요. 지금 피해를 막을지, 다음 폭풍을 위해 아낄지 모둠이 결정합니다.`;
+  } else if (s.round === 0) {
+    if (!res.ok) coach = `너무 아꼈어요. 실패한 모둠에는 <b>명예 보상이 없고</b>, 기준 이상 인원도 부족해 강화가 쌓이지 않아요.`;
+    else if (res.iAmTop) coach = `좋아요. 방어 성공 + 항구 기준 이상 최다 기여라서 <b>명예 토큰(+2점)</b>을 받았어요. 명예는 성공한 모둠에서만 나옵니다.`;
+    else coach = `방어는 성공했어요. 다만 명예는 <b>기준 이상 기여자 중 최다 기여자</b>에게만 가요. 기준을 넘겼는지도 중요합니다.`;
+  } else if (s.round === 1) {
+    if (res.cooperationSuccess) coach = `공동 협력 성공! 기준 이상 기여자가 ${res.standardMetCount}명이라 <b>방파제 강화 +1</b>이 쌓였어요. 강화가 2개가 되면 실패 때 투표로 쓸 수 있습니다.`;
+    else if (res.ok) coach = `방어는 성공했지만 기준 이상 인원이 ${res.standardMetCount}명뿐이라 <b>강화는 얻지 못했어요</b>. 1개만 내고 숨는 전략이 약해지는 이유예요.`;
+    else coach = `실패하면 명예도, 강화도 없어요. 공동 보상은 개인이 아니라 <b>모둠 기준 이상 참여</b>에 걸려 있습니다.`;
   } else {
-    coach = s.choice >= round.standard
-      ? `당신은 최선을 다했어요. 하지만 <b>친구들이 자원을 아끼면 혼자서는 막을 수 없어요</b>. 도시가 피해를 입었죠. 그래서 '협상'에서 서로를 설득하는 게 중요해요.`
-      : `친구들도, 나도 아꼈더니 <b>도시가 크게 무너졌어요</b>. 모두가 "남이 내겠지" 하면 결국 다 같이 패배해요. 이게 무임승차의 함정이에요.`;
+    if (res.damageBlocked) coach = `찬성으로 강화 2개를 사용했어요. 이번 피해는 막았지만 강화는 0개가 됩니다. 다음 큰 폭풍을 생각하면 쉬운 선택이 아니죠.`;
+    else if (res.shieldVoteOpen) coach = `강화를 아꼈어요. 이번 피해는 그대로 받지만 다음 실패 때 다시 쓸 수 있습니다. 이 선택도 전략이에요.`;
+    else if (TUT.state.reinforcement < 2) coach = `강화가 2개 미만이라 투표가 열리지 않았어요. 그래서 앞 라운드의 공동 협력 성공이 중요합니다.`;
+    else coach = `친구들도, 나도 아끼면 도시가 피해를 입어요. 강화가 있어도 계속 무임승차하면 결국 버티기 어렵습니다.`;
   }
 
   tutStage.innerHTML = `${tutTopbar()}
@@ -455,19 +516,51 @@ function tutResolve(round) {
     </div>
     ${res.ok
       ? `<div class="banner ok">막아냈다! ${res.surplus > 0 ? `${res.surplus}개는 파도에 쓸려갔어요.` : '한 개도 안 남기고 딱 막았어요!'}</div>`
-      : `<div class="banner bad">못 막았다! 도시 피해 +${res.damage}${fell ? ' — <b>도시가 무너졌어요…</b>' : ''}</div>`}
+      : `<div class="banner bad">못 막았다! ${waitingForShieldVote ? `예상 피해 +${res.pendingDamage}` : res.damageBlocked ? '방파제 강화로 피해를 막았어요.' : `도시 피해 +${res.damage}${fell ? ' — <b>도시가 무너졌어요…</b>' : ''}`}</div>`}
+    <div class="mini-grid tut-mini">
+      <span>항구 기준 <b>${round.standard}개</b></span>
+      <span>기준 이상 <b>${res.standardMetCount}/5명</b></span>
+      <span>기준 미달 <b>${res.belowStandardCount}명</b></span>
+      <span>공동 협력 <b>${res.cooperationSuccess ? '성공' : '실패'}</b></span>
+    </div>
     ${res.iAmTop ? `<div class="banner honor">명예 보상: 기준 이상 최다 기여 — <b>나!</b> (+2점)</div>` : ''}
+    ${res.cooperationSuccess ? `<div class="banner ok">공동 협력 성공: 방파제 강화 +1</div>` : res.ok ? `<div class="banner warn">방어는 성공했지만 공동 협력 조건은 부족해요. 강화는 얻지 못합니다.</div>` : ''}
+    ${tutShieldVoteHTML(res, waitingForShieldVote)}
     <div class="tut-points">
       <span>이번 라운드</span>
       <span>🌊 낸 <b>${s.choice}</b>개 · 📦 남긴 <b>${res.kept}</b>개${res.honor ? ' · 🏅 +2' : ''}</span>
-      <span>→ <span class="big">+${res.kept + res.honor}점</span></span>
+      <span>→ <span class="big">${waitingForShieldVote ? '투표 후 정산' : `+${res.kept + res.honor}점`}</span></span>
     </div>
     <p class="tut-note">${coach}</p>
     <div class="tut-nav">
-      ${tutNextAfterResolve(fell)}
+      ${waitingForShieldVote ? '<p class="center muted" style="width:100%;margin:0">투표를 선택하면 정산이 계속됩니다.</p>' : tutNextAfterResolve(fell)}
     </div>`;
   const nx = document.getElementById('tut-next');
   if (nx) nx.onclick = tutAdvanceAfterResolve;
+  const yes = document.getElementById('tut-vote-yes');
+  const no = document.getElementById('tut-vote-no');
+  if (yes) yes.onclick = () => { s.shieldDecision = 'yes'; tutRender(); };
+  if (no) no.onclick = () => { s.shieldDecision = 'no'; tutRender(); };
+}
+
+function tutShieldVoteHTML(res, waitingForShieldVote) {
+  if (!res.shieldVoteOpen) {
+    if (!res.ok && TUT.state.reinforcement < 2) {
+      return `<div class="banner warn">방파제 강화가 2개 미만이라 이번 실패에는 사용할 수 없어요.</div>`;
+    }
+    return '';
+  }
+  if (waitingForShieldVote) {
+    return `<div class="banner vote">
+      <h3>방파제 강화 2개를 사용할까요?</h3>
+      <p>찬성이 과반이면 강화 2개를 쓰고 이번 피해를 막습니다. 쓰면 다음 폭풍에는 강화가 남지 않아요.</p>
+      <div class="row">
+        <button class="btn" id="tut-vote-yes">찬성: 지금 막기</button>
+        <button class="btn ghost" id="tut-vote-no">반대: 아껴두기</button>
+      </div>
+    </div>`;
+  }
+  return `<div class="banner vote">방파제 강화 투표 결과: ${res.damageBlocked ? '사용함 · 피해를 막았습니다.' : '사용하지 않음 · 피해를 받습니다.'}</div>`;
 }
 
 function tutNextAfterResolve(fell) {
@@ -482,7 +575,7 @@ function tutAdvanceAfterResolve() {
   const fell = s.damage >= 3;
   const lastRound = s.round >= TUT.rounds.length - 1;
   if (fell || lastRound) return tutOutro();
-  s.round += 1; s.step = 0; s.choice = null;
+  s.round += 1; s.step = 0; s.choice = null; s.shieldDecision = null;
   tutRender();
 }
 
@@ -506,7 +599,9 @@ function tutOutro() {
     <p class="tut-note" style="background:var(--teal-pale);border-color:rgba(13,90,78,.2);color:var(--teal-dark)">
       🌊 <b>방파제에 낸 것</b> → 도시를 지켜요 (모두 무너지면 전원 패배)<br>
       📦 <b>창고에 남긴 것</b> → 내 점수가 돼요 (살아남으면 1등만 우승)<br>
-      ⚓ <b>항구 기준 이상</b> 내야 명예·공동 협력에 들어가요.<br>
+      🏅 <b>명예</b>는 방어 성공 시, 기준 이상 기여자 중 최다 기여자에게만 가요.<br>
+      ⚓ <b>공동 협력 성공</b>은 방어 성공 + 기준 이상 인원 80% 이상이에요.<br>
+      🧱 <b>방파제 강화</b>는 공동 협력 성공 때 +1, 2개가 모이면 실패 후 투표로 사용할 수 있어요.<br>
       ${fell ? '이번 연습에선 도시가 무너졌죠? 실전에선 서로를 설득해 함께 막아보세요.' : '너무 아끼면 다 같이 가라앉고, 너무 다 내면 우승은 남의 것. 그 사이를 노리세요!'}
     </p>
     <div class="tut-nav">

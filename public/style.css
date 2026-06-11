@@ -950,6 +950,20 @@ details.tut .body { padding: 0 18px 16px; }
 }
 .tut-note b { color: #5a3a0c; }
 
+.tut-mini {
+  margin-top: 12px;
+}
+.tut-mini span {
+  min-height: 50px;
+  align-items: center;
+}
+.tutorial .banner.vote h3 {
+  margin-bottom: 4px;
+}
+.tutorial .banner.vote .row {
+  margin-top: 10px;
+}
+
 .tut-roster { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin: 10px 0; }
 .tut-chip {
   display: inline-flex; align-items: center; gap: 6px;
@@ -974,4 +988,6 @@ details.tut .body { padding: 0 18px 16px; }
 @media (max-width: 480px) {
   .tut-kpi .val { font-size: 26px; }
   .tut-stage h3.tut-title { font-size: 21px; }
+  .tutorial .banner.vote .row { flex-direction: column; }
+  .tutorial .banner.vote .row .btn { width: 100%; }
 }
