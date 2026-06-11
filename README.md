@@ -42,6 +42,10 @@ node server.js
 
 같은 와이파이가 아니어도 접속하게 하려면 무료 호스팅에 올릴 수 있습니다.
 
+- GitHub에는 `server.js`, `package.json`, `README.md`, `public/` 폴더를 올리면 됩니다.
+- `data/rooms.json`은 실제 방 코드와 교사용 토큰이 들어가는 실행 기록이라 올리지 마세요. 서버가 켜질 때 자동으로 다시 만듭니다.
+- `node_modules/`, `.omx/`, `.claude/` 같은 로컬 도구 폴더도 올릴 필요가 없습니다.
+
 - **Render** (render.com): New → Web Service → 이 폴더를 GitHub에 올려 연결 →
   Build Command는 비워 두고, Start Command를 `node server.js`로 설정.
 - **Railway / Glitch** 등도 같은 방식입니다. `PORT` 환경변수는 자동으로 적용됩니다.
