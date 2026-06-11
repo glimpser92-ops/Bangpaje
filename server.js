@@ -632,12 +632,13 @@ loadRooms();
 
 const server = http.createServer((req, res) => {
   const urlObj = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+  if (urlObj.pathname === '/health') return sendJSON(res, 200, { ok: true });
   if (urlObj.pathname.startsWith('/api/')) return void handleApi(req, res, urlObj);
   if (req.method !== 'GET') { res.writeHead(405); return res.end(); }
   serveStatic(req, res, urlObj.pathname);
 });
 
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log('');
   console.log('  ⚓ 방파제 서버가 시작되었습니다!');
   console.log('');
