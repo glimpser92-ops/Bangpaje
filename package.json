@@ -1,0 +1,11 @@
+{
+  "name": "bangpaje",
+  "version": "1.0.0",
+  "description": "방파제 — 교실용 협력·배신 보드게임 (교사/학생 실시간 웹 게임)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": { "node": ">=16" },
+  "license": "MIT"
+}
