@@ -8,7 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body class="app-page student-page" data-view="loading">
 
 <div class="masthead">
   <div class="inner">
@@ -30,6 +30,10 @@ let timeOffset = 0;
 let myAmount = null;          // 기여 선택값 (제출 전 임시 포함)
 let amountKey = '';           // 라운드가 바뀌면 선택값 초기화
 let submitting = false;
+
+function setView(view) {
+  document.body.dataset.view = view;
+}
 
 try { session = JSON.parse(localStorage.getItem('bp_student') || 'null'); } catch {}
 if (!session || !session.code) location.href = '/';
@@ -79,6 +83,7 @@ function phaseBar() {
   }).join('')}</div>`;
 }
 function topBar() {
+  const shownPoints = Number.isInteger(S.me.finalPoints) && S.state === 'finished' ? S.me.finalPoints : S.me.points;
   return `<div class="card tight">
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:15px">
       <b>${esc(S.me.name)}</b> <span class="badge">${S.me.group + 1}모둠</span>
@@ -86,9 +91,10 @@ function topBar() {
       ${damagePips(S.group.damage)}
     </div>
     <div style="display:flex;gap:10px;margin-top:6px;font-size:15px;align-items:baseline">
-      <span class="muted">내 점수(나만 보여요)</span>
-      <b class="display" style="font-size:22px">${S.me.points}점</b>
+      <span class="muted">${S.state === 'finished' ? '최종 점수' : '내 점수(나만 보여요)'}</span>
+      <b class="display" style="font-size:22px">${shownPoints}점</b>
       ${S.me.honor ? `<span class="badge amber">🏅×${S.me.honor}</span>` : ''}
+      ${S.group.reinforcement ? `<span class="badge teal">강화 ${S.group.reinforcement}</span>` : ''}
     </div>
   </div>`;
 }
@@ -97,12 +103,15 @@ function stormBig() {
   if (!c) return '';
   if (c.storm != null) {
     return `<p class="center">이번 폭풍의 진짜 세기</p><p class="num huge center">${c.storm}</p>
-      <p class="center muted">예보 ${c.pub} + 숨겨져 있던 ${c.hidden}</p>`;
+      <p class="center muted">예보 ${c.pub} + 숨겨져 있던 ${c.hidden}</p>
+      <p class="rule-line center">항구 기준 ${c.standard}개 · 공동 협력 ${c.cooperationNeed}명 이상</p>`;
   }
   return `<div class="center">
+    ${c.emergency ? '<div class="banner warn">긴급 라운드: 실패하면 함락 위험, 공동 협력 성공 시 피해 -1</div>' : ''}
     <p style="margin-bottom:2px">확실한 세기</p><p class="num">${c.pub}</p>
     <p style="margin-bottom:2px">+ 숨겨진 세기</p><p class="num" style="color:var(--storm)">${c.lo} ~ ${c.hi}</p>
     <p class="banner" style="background:var(--storm-pale)">폭풍은 <b>${c.min} ~ ${c.max}</b> 사이로 올 거예요</p>
+    <p class="rule-line">이번 항구 기준: <b>${c.standard}개</b><br>기준 이상 기여하면 공동 협력에 포함됩니다.</p>
   </div>`;
 }
 
@@ -120,6 +129,7 @@ function render() {
 }
 
 function renderLobby() {
+  setView('lobby');
   $('#head-sub').textContent = '곧 게임이 시작돼요';
   app.innerHTML = `
     <div class="card center">
@@ -136,11 +146,13 @@ function renderLobby() {
       <p style="font-size:15px">매 라운드 자원 <b>${S.settings.cubes}개</b>를 받아요.<br>
       🌊 방파제에 낸 것 → 도시를 지켜요<br>
       📦 남긴 것 → 내 점수가 돼요<br>
+      ⚓ 항구 기준 이상 기여해야 공동 협력에 포함돼요<br>
       도시가 무너지면(피해 3) 모두 패배! 살아남으면 점수 1등이 우승!</p>
     </div>`;
 }
 
 function renderStorm() {
+  setView('storm');
   $('#head-sub').textContent = `${S.round + 1}라운드 — 폭풍 예보`;
   app.innerHTML = `${topBar()}
     <div class="card">${phaseBar()}
@@ -151,6 +163,7 @@ function renderStorm() {
 }
 
 function renderNegotiate() {
+  setView('negotiate');
   $('#head-sub').textContent = `${S.round + 1}라운드 — 협상`;
   app.innerHTML = `${topBar()}
     <div class="card">${phaseBar()}
@@ -172,6 +185,7 @@ function tickTimer() {
 }
 
 function renderContribute() {
+  setView('contribute');
   $('#head-sub').textContent = `${S.round + 1}라운드 — 비밀 기여`;
   const key = `${S.gamesPlayed}-${S.round}`;
   if (amountKey !== key) {
@@ -185,6 +199,7 @@ function renderContribute() {
     <div class="card">${phaseBar()}
       <h2 class="center">🤫 몰래 정하세요</h2>
       <p class="center muted">상자를 눌러 방파제에 낼 개수를 정해요. 아무도 볼 수 없어요.</p>
+      ${S.stormCard ? `<p class="rule-line center">이번 항구 기준 <b>${S.stormCard.standard}개</b> · 공동 협력 ${S.stormCard.cooperationNeed}명 이상</p>` : ''}
       <div class="cubes" id="cubes">
         ${Array.from({ length: n }, (_, i) =>
           `<button class="cube ${myAmount !== null && i < myAmount ? 'give' : ''}" data-i="${i}" aria-label="${i + 1}개 내기"></button>`).join('')}
@@ -222,7 +237,36 @@ async function submitContribution() {
   } finally { submitting = false; render(); poll(); }
 }
 
+function shieldVoteHTML(r) {
+  if (!r.shieldVote) return '';
+  if (r.shieldVote.open) {
+    return `<div class="banner vote">
+      <h3>방파제 강화 2개를 사용할까요?</h3>
+      <p>사용하면 이번 피해를 막고 강화 2개를 씁니다. 찬성 과반이면 사용해요.</p>
+      <div class="mini-grid">
+        <span>찬성 <b>${r.shieldVote.yesCount}</b></span>
+        <span>반대 <b>${r.shieldVote.noCount}</b></span>
+        <span>필요 <b>${r.shieldVote.required}</b></span>
+      </div>
+      <div class="row">
+        <button class="btn" id="vote-yes">${S.myShieldVote === 'yes' ? '찬성 선택됨' : '찬성'}</button>
+        <button class="btn ghost" id="vote-no">${S.myShieldVote === 'no' ? '반대 선택됨' : '반대'}</button>
+      </div>
+    </div>`;
+  }
+  return `<div class="banner vote">방파제 강화 투표 결과: ${r.shieldVote.used ? '사용함 · 피해를 막았습니다.' : '사용하지 않음'}</div>`;
+}
+
+async function submitShieldVote(support) {
+  const r = await fetch(`/api/rooms/${session.code}/shieldVote`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ playerId: session.playerId, token: session.token, support }),
+  });
+  if (r.ok) { lastJSON = ''; poll(); }
+}
+
 function renderResolve() {
+  setView('resolve');
   $('#head-sub').textContent = `${S.round + 1}라운드 — 판정`;
   const r = S.result;
   if (!r || r.skipped) return renderFallen();
@@ -238,17 +282,39 @@ function renderResolve() {
       </div>
       ${r.ok
         ? `<div class="banner ok">🛡 막아냈다! ${r.surplus > 0 ? `${r.surplus}개는 파도에 쓸려갔어요.` : '한 개도 안 남기고 딱 막았어요!'}</div>`
-        : `<div class="banner bad">💥 못 막았다! 도시 피해 +${r.damage} ${r.fellNow ? '— <b>도시가 무너졌어요…</b>' : ''}</div>`}
-      ${r.topNames.length ? `<div class="banner honor">🏅 이번 라운드 최다 기여: <b>${r.topNames.map(esc).join(', ')}</b> (+2점)${S.myHonor ? ' — 바로 나!' : ''}</div>` : ''}
-      <div class="card tight" style="background:var(--paper);box-shadow:none">
+        : `<div class="banner bad">💥 못 막았다! ${
+          r.shieldVote && r.shieldVote.open
+            ? `예상 피해 +${r.pendingDamage} · 강화 사용 투표 중`
+            : r.damageBlocked
+              ? '방파제 강화로 피해를 막았어요.'
+              : `도시 피해 +${r.damage} ${r.fellNow ? '— <b>도시가 무너졌어요…</b>' : ''}`
+        }</div>`}
+      ${r.cooperationSuccess
+        ? `<div class="banner ok">공동 협력 성공! 기준 이상 ${r.standardMetCount}/${S.group.size}명 · 방파제 강화 +1${r.recovered ? ' · 긴급 복구로 피해 -1' : ''}</div>`
+        : r.ok
+          ? '<div class="banner warn">방어는 성공했지만 공동 협력 기준에는 미달했어요.</div>'
+          : `<div class="banner warn">이번 라운드 항구 기준 미달자: <b>${r.belowStandardCount}명</b></div>`}
+      ${r.nearMissRecordName ? `<div class="banner bad">아슬아슬한 실패로 <b>${esc(r.nearMissRecordName)}</b> 학생이 항구 기록에 남았습니다.</div>` : ''}
+      ${shieldVoteHTML(r)}
+      ${r.topNames.length ? `<div class="banner honor">🏅 명예 보상: 기준 이상 최다 기여 <b>${r.topNames.map(esc).join(', ')}</b> (+2점)${S.myHonor ? ' — 바로 나!' : ''}</div>` : ''}
+      <div class="audit-box">
+        <p><b>감사 결과</b>, 나는 이번 라운드 항구 기준${S.myMeetsStandard ? ' 이상 기여했습니다.' : '에 미달했습니다.'}</p>
+        <p class="muted">정확한 기여량은 공개되지 않습니다.</p>
+      </div>
+      <div class="audit-box">
         <p style="margin:0;font-size:15px">나는 🌊 <b>${S.myContribution}개</b>를 내고 📦 <b>${S.myKept}개</b>를 남겼어요
         → <b>+${S.myKept + (S.myHonor ? 2 : 0)}점</b> <span class="muted">(아무에게도 안 보여요)</span></p>
       </div>
       ${r.fellNow ? '<p class="center muted">도시가 가라앉으면 점수는 의미가 없어요…</p>' : '<p class="center muted">선생님이 다음 라운드를 시작할 때까지 기다려요.</p>'}
     </div>`;
+  const yes = $('#vote-yes');
+  const no = $('#vote-no');
+  if (yes) yes.onclick = () => submitShieldVote(true);
+  if (no) no.onclick = () => submitShieldVote(false);
 }
 
 function renderFallen() {
+  setView('fallen');
   $('#head-sub').textContent = '도시 함락…';
   app.innerHTML = `${topBar()}
     <div class="card center">
@@ -260,6 +326,7 @@ function renderFallen() {
 }
 
 function renderFinished() {
+  setView('finished');
   $('#head-sub').textContent = '게임 종료';
   const fallen = S.group.fallen;
   const mine = (S.ranking || []).find(p => p.name === S.me.name);
@@ -269,6 +336,7 @@ function renderFinished() {
       ${fallen
         ? '<p>도시가 함락되어 모둠 전원이 패배했어요.</p>'
         : (mine && mine.rank === 1 ? '<p class="num">🏆 우승!</p>' : `<p>내 순위: <b class="display" style="font-size:24px">${mine ? mine.rank : '-'}위</b></p>`)}
+      ${!fallen ? `<p class="muted">최종 피해 ${S.group.damage} · 생존 보정 +${S.me.finalBonus || 0}점</p>` : ''}
     </div>
     <div class="card">
       <h3>우리 모둠 최종 점수</h3>

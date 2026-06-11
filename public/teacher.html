@@ -9,7 +9,7 @@
 <link rel="stylesheet" href="style.css">
 <script src="qrcode.js"></script>
 </head>
-<body>
+<body class="app-page teacher-page" data-view="create">
 
 <div class="masthead">
   <div class="inner">
@@ -30,6 +30,10 @@ let lastJSON = '';
 let joinURL = '';
 let timeOffset = 0;       // serverNow - Date.now()
 let confirmEnd = false;
+
+function setView(view) {
+  document.body.dataset.view = view;
+}
 
 function loadSession() {
   try { session = JSON.parse(localStorage.getItem('bp_teacher') || 'null'); } catch { session = null; }
@@ -61,6 +65,7 @@ async function init() {
 }
 
 function renderCreate() {
+  setView('create');
   $('#head-sub').textContent = '방을 만들어 학생들을 초대하세요';
   app.innerHTML = `
     <div class="card">
@@ -87,34 +92,52 @@ function renderCreate() {
         </label>
       </div>
       <button class="btn big" id="create-btn">방 만들기</button>
+      <p class="muted center" id="create-msg" style="margin-top:8px"></p>
       <p class="muted" style="margin-top:10px">권장: 모둠당 4~6명. 학생들은 모두 같은 와이파이에 있어야 해요.
       게임 규칙이 궁금하면 <a href="/">첫 화면의 게임 방법</a>을 보세요.</p>
     </div>`;
   $('#create-btn').onclick = async () => {
+    const btn = $('#create-btn');
+    const msg = $('#create-msg');
+    btn.disabled = true;
+    btn.textContent = '방 만드는 중...';
+    msg.textContent = '';
     const settings = {
       rounds: $('#f-rounds').value, groupCount: $('#f-groups').value,
       cubes: $('#f-cubes').value, negotiationSec: $('#f-nego').value,
     };
-    const r = await fetch('/api/rooms', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ settings }),
-    });
-    const d = await r.json();
-    session = { code: d.code, token: d.teacherToken };
-    localStorage.setItem('bp_teacher', JSON.stringify(session));
-    await resolveJoinURL();
-    await poll(true);
-    startPolling();
+    try {
+      const r = await fetch('/api/rooms', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ settings }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok || !d.code || !d.teacherToken) throw new Error(d.message || '방을 만들지 못했어요.');
+      session = { code: d.code, token: d.teacherToken };
+      joinURL = `${location.origin}/?room=${session.code}`;
+      localStorage.setItem('bp_teacher', JSON.stringify(session));
+      const ok = await poll(true);
+      if (!ok) throw new Error('방은 만들어졌지만 상태를 불러오지 못했어요. 새로고침하면 이어집니다.');
+      startPolling();
+      resolveJoinURL().then(() => { lastJSON = ''; render(); });
+    } catch (e) {
+      msg.textContent = e && e.message ? e.message : '방 만들기 중 오류가 났어요. 서버가 켜져 있는지 확인해 주세요.';
+      btn.disabled = false;
+      btn.textContent = '방 만들기';
+    }
   };
 }
 
 async function resolveJoinURL() {
   let origin = location.origin;
   if (['localhost', '127.0.0.1'].includes(location.hostname)) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 1200);
     try {
-      const d = await (await fetch('/api/info')).json();
+      const d = await (await fetch('/api/info', { signal: controller.signal })).json();
       if (d.urls && d.urls.length) origin = d.urls[0];
     } catch {}
+    clearTimeout(timer);
   }
   joinURL = `${origin}/?room=${session.code}`;
 }
@@ -199,6 +222,7 @@ function render() {
 
 /* ---------------- 로비 ---------------- */
 function renderLobby() {
+  setView('lobby');
   $('#head-sub').textContent = `방 코드 ${S.code} — 학생들이 들어오면 시작하세요`;
   const total = S.groups.reduce((a, g) => a + g.members.length, 0);
   app.innerHTML = `
@@ -243,11 +267,14 @@ function stormCardHTML(g) {
   if (!g.stormCard) return '';
   const c = g.stormCard;
   if (c.storm != null) {
-    return `<p>폭풍 세기: <b class="num" style="font-size:26px">${c.storm}</b> <span class="muted">(예보 ${c.pub} + 숨김 ${c.hidden})</span></p>`;
+    return `<p>폭풍 세기: <b class="num" style="font-size:26px">${c.storm}</b> <span class="muted">(예보 ${c.pub} + 숨김 ${c.hidden})</span></p>
+      <p class="rule-line">항구 기준 <b>${c.standard}개</b> · 공동 협력 ${c.cooperationNeed}명 이상</p>`;
   }
-  return `<p>확실한 세기 <b style="font-size:22px" class="display">${c.pub}</b>
+  return `${c.emergency ? '<div class="banner warn">긴급 라운드: 협상 60초 · 실패하면 함락 위험 · 공동 협력 성공 시 피해 -1</div>' : ''}
+    <p>확실한 세기 <b style="font-size:22px" class="display">${c.pub}</b>
     + 숨겨진 세기 <b style="font-size:22px" class="display">${c.lo}~${c.hi}</b><br>
-    <span class="muted">→ 폭풍은 ${c.min} ~ ${c.max} 사이</span></p>`;
+    <span class="muted">→ 폭풍은 ${c.min} ~ ${c.max} 사이</span></p>
+    <p class="rule-line">이번 항구 기준 <b>${c.standard}개</b> · 기준 이상 ${c.cooperationNeed}명부터 공동 협력</p>`;
 }
 
 function resultHTML(g) {
@@ -265,28 +292,51 @@ function resultHTML(g) {
     </div>
     ${r.ok
       ? `<div class="banner ok">🛡 막아냈다! ${r.surplus > 0 ? `(${r.surplus}개는 파도에 쓸려감)` : '딱 맞게 막았어요!'}</div>`
-      : `<div class="banner bad">💥 못 막았다! 도시 피해 +${r.damage} ${r.fellNow ? '— <b>도시 함락!</b>' : ''}</div>`}
-    ${r.topNames.length ? `<div class="banner honor">🏅 최다 기여: <b>${r.topNames.map(esc).join(', ')}</b> (${r.topAmount}개 · 명예 +2점)</div>` : ''}
+      : `<div class="banner bad">💥 못 막았다! ${
+          r.shieldVote && r.shieldVote.open
+            ? `예상 피해 +${r.pendingDamage} · 방파제 강화 사용 투표 중`
+            : r.damageBlocked
+              ? '방파제 강화 2개로 피해를 막았습니다.'
+              : `도시 피해 +${r.damage} ${r.fellNow ? '— <b>도시 함락!</b>' : ''}`
+        }</div>`}
+    <div class="mini-grid">
+      <span>항구 기준 <b>${r.standard}개</b></span>
+      <span>기준 이상 <b>${r.standardMetCount}/${g.size}명</b></span>
+      <span>기준 미달 <b>${r.belowStandardCount}명</b></span>
+      <span>강화 <b>${r.reinforcementAfter}개</b></span>
+    </div>
+    ${r.cooperationSuccess
+      ? `<div class="banner ok">공동 협력 성공 · 방파제 강화 +1${r.recovered ? ' · 긴급 복구로 피해 -1' : ''}</div>`
+      : r.ok
+        ? '<div class="banner warn">방어는 성공했지만 공동 협력 기준에는 미달했습니다. 강화는 얻지 못합니다.</div>'
+        : `<div class="banner warn">이번 라운드 항구 기준 미달자: <b>${r.belowStandardCount}명</b></div>`}
+    ${r.nearMissRecordName ? `<div class="banner bad">아슬아슬한 실패: 기준 미달자 중 <b>${esc(r.nearMissRecordName)}</b> 학생이 항구 기록에 남았습니다.</div>` : ''}
+    ${r.shieldVote ? `<div class="banner vote">방파제 강화 사용 투표: 찬성 <b>${r.shieldVote.yesCount}</b> · 반대 <b>${r.shieldVote.noCount}</b> · 필요 <b>${r.shieldVote.required}</b>${r.shieldVote.open ? '' : (r.shieldVote.used ? ' · 사용함' : ' · 사용하지 않음')}</div>` : ''}
+    ${r.topNames.length ? `<div class="banner honor">🏅 명예 보상: 기준 이상 최다 기여 <b>${r.topNames.map(esc).join(', ')}</b> (+2점)</div>` : ''}
   `;
 }
 
 function renderPlaying() {
+  setView('playing');
   $('#head-sub').textContent = `방 ${S.code} · ${S.round + 1}/${S.settings.rounds} 라운드`;
   const activeGroups = S.groups.filter(g => g.size > 0);
   const allSubmitted = activeGroups.filter(g => !g.fallen).every(g => g.submittedCount >= g.size);
   const notSubmitted = activeGroups.filter(g => !g.fallen).reduce((a, g) => a + (g.size - g.submittedCount), 0);
   const isLastRound = S.round >= S.settings.rounds - 1;
   const aliveCount = activeGroups.filter(g => !g.fallen).length;
+  const hasOpenShieldVote = activeGroups.some(g => g.result && g.result.shieldVote && g.result.shieldVote.open);
 
   let phaseGuide = '';
   if (S.phase === 'storm') phaseGuide = '폭풍 예보를 다 같이 확인한 뒤 협상을 시작하세요.';
   if (S.phase === 'negotiate') phaseGuide = '모둠끼리 얼굴을 보고 작전을 짜는 시간이에요. 약속은 지켜도, 안 지켜도 됩니다.';
   if (S.phase === 'contribute') phaseGuide = '각자 기기에서 몰래 제출하는 중… 제출 안 한 학생은 0개로 처리돼요.';
-  if (S.phase === 'resolve') phaseGuide = '결과를 함께 확인하세요.';
+  if (S.phase === 'resolve') phaseGuide = hasOpenShieldVote
+    ? '강화 사용 투표가 열린 모둠이 있어요. 다음 단계로 넘기면 미확정 투표는 사용하지 않음으로 처리됩니다.'
+    : '결과를 함께 확인하세요.';
 
   let nextBtn = '';
   if (S.phase === 'resolve') {
-    nextBtn = `<button class="btn big storm" onclick="next()">${isLastRound || aliveCount === 0 ? '🏆 최종 결과 보기' : `▶ ${S.round + 2}라운드 시작`}</button>`;
+    nextBtn = `<button class="btn big storm" onclick="next()">${hasOpenShieldVote ? '투표 마감하고 ' : ''}${isLastRound || aliveCount === 0 ? '🏆 최종 결과 보기' : `▶ ${S.round + 2}라운드 시작`}</button>`;
   } else if (S.phase === 'contribute') {
     nextBtn = `<button class="btn big storm" onclick="next()">⚖ 판정하기${notSubmitted ? ` (미제출 ${notSubmitted}명)` : ''}</button>
       ${allSubmitted ? '<p class="center" style="color:var(--teal-dark);margin-top:8px"><b>✓ 전원 제출 완료!</b></p>' : ''}`;
@@ -311,10 +361,12 @@ function renderPlaying() {
         if (g.size === 0) return '';
         return `<div class="group-card ${g.fallen ? 'fallen' : ''}">
           <h3>${i + 1}모둠 ${damagePips(g.damage)}</h3>
+          <p class="muted" style="font-size:13px">방파제 강화 ${g.reinforcement}개${g.emergency ? (S.phase === 'resolve' ? ' · 다음 라운드 긴급' : ' · 긴급 라운드') : ''}</p>
           ${g.fallen ? `<p class="badge coral">💥 ${g.fallenRound + 1}라운드에 함락</p>` : ''}
           ${!g.fallen && (S.phase === 'storm' || S.phase === 'negotiate') ? stormCardHTML(g) : ''}
           ${!g.fallen && S.phase === 'contribute' ? `
             <p style="font-size:15px">제출 <b>${g.submittedCount} / ${g.size}</b></p>
+            ${g.stormCard ? `<p class="rule-line">항구 기준 ${g.stormCard.standard}개 · 공동 협력 ${g.stormCard.cooperationNeed}명</p>` : ''}
             ${g.members.map(m => `<div class="member"><span class="dot ${m.online ? 'on' : ''}"></span>${esc(m.name)}${m.submitted ? '<span class="check">✓ 제출</span>' : ''}</div>`).join('')}
           ` : ''}
           ${S.phase === 'resolve' ? resultHTML(g) : ''}
@@ -341,6 +393,7 @@ function tickTimer() {
 
 /* ---------------- 종료 ---------------- */
 function renderFinished() {
+  setView('finished');
   $('#head-sub').textContent = `방 ${S.code} · 게임 종료`;
   const reasonText = S.finishedReason === 'allFallen'
     ? '모든 도시가 폭풍에 가라앉았어요…' : '폭풍의 계절이 끝났습니다!';
@@ -354,6 +407,7 @@ function renderFinished() {
         const surv = !g.fallen;
         return `<div class="group-card ${g.fallen ? 'fallen' : ''}">
           <h3>${i + 1}모둠 ${surv ? '<span class="badge teal">생존 🛡</span>' : `<span class="badge coral">함락 💥</span>`}</h3>
+          ${surv ? `<p class="muted">최종 피해 ${g.damage} · 전원 보정 +${g.finalBonus || 0}점</p>` : ''}
           ${surv ? `<div class="podium">${(g.ranking || []).map(p => `
               <div class="rank-row ${p.rank === 1 ? 'first' : ''}">
                 <span class="r">${p.rank === 1 ? '🏆' : p.rank}</span>

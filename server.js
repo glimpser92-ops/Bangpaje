@@ -121,6 +121,43 @@ function playersInGroup(room, g) {
   return Object.values(room.players).filter(p => p.group === g);
 }
 
+function cooperationNeed(size) {
+  return Math.max(1, Math.ceil(size * 0.8));
+}
+
+function harborStandard(room, card, size) {
+  if (!card || size <= 0) return 0;
+  const need = cooperationNeed(size);
+  const forecastMid = ((card.pub + card.lo) + (card.pub + card.hi)) / 2;
+  return clamp(Math.ceil(forecastMid / need), 1, room.settings.cubes);
+}
+
+function groupState(room, g) {
+  const gr = room.groups[g] || {};
+  if (!Number.isInteger(gr.damage)) gr.damage = 0;
+  if (!Number.isInteger(gr.reinforcement)) gr.reinforcement = 0;
+  gr.fallen = !!gr.fallen;
+  return gr;
+}
+
+function isEmergencyGroup(room, g) {
+  const gr = groupState(room, g);
+  return room.state === 'playing' && !gr.fallen && gr.damage >= 2;
+}
+
+function negotiationSecondsForPhase(room) {
+  if (!room.settings.negotiationSec) return 0;
+  return aliveGroups(room).some(g => isEmergencyGroup(room, g)) ? 60 : room.settings.negotiationSec;
+}
+
+function finalDamageBonus(room, g) {
+  const gr = room.groups[g];
+  if (!gr || gr.fallen) return 0;
+  if (gr.damage === 0) return 6;
+  if (gr.damage === 1) return 3;
+  return 0;
+}
+
 function createRoom(settings) {
   const code = newRoomCode();
   const s = {
@@ -161,7 +198,7 @@ function startGame(room) {
   room.finishedReason = null;
   room.groups = [];
   for (let g = 0; g < room.settings.groupCount; g++) {
-    room.groups.push({ damage: 0, fallen: false, fallenRound: null });
+    room.groups.push({ damage: 0, fallen: false, fallenRound: null, reinforcement: 0 });
   }
   for (const p of Object.values(room.players)) {
     p.points = 0; p.honor = 0; p.out = false;
@@ -191,6 +228,7 @@ function advancePhase(room) {
     room.phase = 'resolve';
     room.phaseEndsAt = null;
   } else if (room.phase === 'resolve') {
+    finalizeOpenShieldVotes(room, false);
     const lastRound = room.round >= room.settings.rounds - 1;
     const anyAlive = aliveGroups(room).length > 0;
     if (lastRound || !anyAlive) {
@@ -206,13 +244,79 @@ function advancePhase(room) {
     }
   } else {
     room.phase = order[idx + 1];
-    if (room.phase === 'negotiate' && room.settings.negotiationSec > 0) {
-      room.phaseEndsAt = now() + room.settings.negotiationSec * 1000;
+    const sec = room.phase === 'negotiate' ? negotiationSecondsForPhase(room) : 0;
+    if (room.phase === 'negotiate' && sec > 0) {
+      room.phaseEndsAt = now() + sec * 1000;
     } else {
       room.phaseEndsAt = null;
     }
   }
   touch(room);
+}
+
+function applyRoundDamage(room, g, result, damage) {
+  const gr = groupState(room, g);
+  result.damage = damage;
+  if (damage > 0) {
+    gr.damage += damage;
+    if (gr.damage >= 3) {
+      gr.damage = 3;
+      gr.fallen = true;
+      gr.fallenRound = room.round;
+      result.fellNow = true;
+      for (const p of playersInGroup(room, g)) p.out = true;
+    }
+  }
+  result.damageAfter = gr.damage;
+  result.reinforcementAfter = gr.reinforcement;
+}
+
+function resolveShieldVote(room, g, useShield) {
+  const result = room.results[room.round] && room.results[room.round][g];
+  if (!result || !result.shieldVote || !result.shieldVote.open) return false;
+  const gr = groupState(room, g);
+  const use = !!useShield && gr.reinforcement >= 2;
+
+  result.shieldVote.open = false;
+  result.shieldVote.resolved = true;
+  result.shieldVote.used = use;
+
+  if (use) {
+    gr.reinforcement -= 2;
+    result.damageBlocked = true;
+    result.damage = 0;
+    result.damageAfter = gr.damage;
+    result.reinforcementAfter = gr.reinforcement;
+  } else {
+    applyRoundDamage(room, g, result, result.pendingDamage || result.baseDamage || 1);
+  }
+  return true;
+}
+
+function finalizeOpenShieldVotes(room, useShield) {
+  if (!room.results[room.round]) return;
+  for (let g = 0; g < room.settings.groupCount; g++) {
+    resolveShieldVote(room, g, useShield);
+  }
+}
+
+function castShieldVote(room, player, support) {
+  if (room.state !== 'playing' || room.phase !== 'resolve') return { ok: false, status: 409, error: 'wrong-phase' };
+  const result = room.results[room.round] && room.results[room.round][player.group];
+  if (!result || !result.shieldVote || !result.shieldVote.open) return { ok: false, status: 409, error: 'no-vote' };
+
+  const vote = result.shieldVote;
+  vote.yes = vote.yes.filter(id => id !== player.id);
+  vote.no = vote.no.filter(id => id !== player.id);
+  (support ? vote.yes : vote.no).push(player.id);
+
+  if (vote.yes.length >= vote.required) {
+    resolveShieldVote(room, player.group, true);
+  } else if (vote.no.length >= vote.required || vote.yes.length + vote.no.length >= vote.eligibleCount) {
+    resolveShieldVote(room, player.group, false);
+  }
+  touch(room);
+  return { ok: true };
 }
 
 function resolveRound(room) {
@@ -222,53 +326,104 @@ function resolveRound(room) {
     const card = room.storms[r][g];
     const members = playersInGroup(room, g);
     if (!card || members.length === 0) { roundResult.push(null); continue; }
-    if (room.groups[g].fallen) { roundResult.push({ skipped: true }); continue; }
+    const gr = groupState(room, g);
+    if (gr.fallen) { roundResult.push({ skipped: true }); continue; }
 
     let total = 0;
     let topAmount = 0;
+    const standard = harborStandard(room, card, members.length);
+    const need = cooperationNeed(members.length);
+    const belowStandardNames = [];
     for (const p of members) {
       const c = p.submitted && Number.isInteger(p.currentContribution)
         ? clamp(p.currentContribution, 0, room.settings.cubes) : 0;
       p.contributions[r] = c;
       total += c;
       if (c > topAmount) topAmount = c;
+      if (c < standard) belowStandardNames.push(p.name);
     }
     const ok = total >= card.storm;
-    let damage = 0;
-    if (!ok) damage = total < 0.75 * card.storm ? 2 : 1;
-    room.groups[g].damage += damage;
-    let fellNow = false;
-    if (room.groups[g].damage >= 3) {
-      room.groups[g].damage = 3;
-      room.groups[g].fallen = true;
-      room.groups[g].fallenRound = r;
-      fellNow = true;
+    const standardMetCount = members.length - belowStandardNames.length;
+    const cooperationSuccess = ok && standardMetCount >= need;
+    const baseDamage = ok ? 0 : (total < 0.75 * card.storm ? 2 : 1);
+    const emergency = isEmergencyGroup(room, g);
+    const nearMiss = !ok && card.storm - total >= 1 && card.storm - total <= 2 && belowStandardNames.length > 0;
+
+    const result = {
+      total, storm: card.storm, pub: card.pub, hidden: card.hidden,
+      lo: card.lo, hi: card.hi,
+      ok, surplus: ok ? total - card.storm : 0,
+      baseDamage, damage: 0, fellNow: false,
+      standard, cooperationNeed: need, standardMetCount,
+      belowStandardCount: belowStandardNames.length,
+      cooperationSuccess,
+      reinforcementBefore: gr.reinforcement,
+      reinforcementAfter: gr.reinforcement,
+      reinforcementGained: false,
+      damageAfter: gr.damage,
+      emergency,
+      recovered: false,
+      topNames: [],
+      nearMissRecordName: nearMiss ? belowStandardNames[crypto.randomInt(belowStandardNames.length)] : null,
+      shieldEligible: false,
+      shieldVote: null,
+      pendingDamage: 0,
+      damageBlocked: false,
+    };
+
+    if (cooperationSuccess) {
+      gr.reinforcement += 1;
+      result.reinforcementGained = true;
+      result.reinforcementAfter = gr.reinforcement;
+      if (emergency && gr.damage > 0) {
+        gr.damage -= 1;
+        result.recovered = true;
+        result.damageAfter = gr.damage;
+      }
     }
 
-    // 명예 토큰: 그 라운드 최다 기여자(공동 1위 모두)에게 +2점. 공개되는 건 칭찬뿐.
+    // 명예 토큰: 방어 성공 시, 항구 기준 이상 기여자 중 최다 기여자에게만 +2점.
     const topNames = [];
-    if (topAmount > 0) {
+    if (ok) {
+      topAmount = 0;
       for (const p of members) {
-        if (p.contributions[r] === topAmount) {
+        if (p.contributions[r] >= standard && p.contributions[r] > topAmount) topAmount = p.contributions[r];
+      }
+      for (const p of members) {
+        if (topAmount > 0 && p.contributions[r] === topAmount) {
           topNames.push(p.name);
           p.honor += 1;
           p.points += 2;
         }
       }
     }
+    result.topNames = topNames;
+
+    if (!ok) {
+      if (gr.reinforcement >= 2) {
+        result.shieldEligible = true;
+        result.pendingDamage = baseDamage;
+        result.shieldVote = {
+          open: true,
+          resolved: false,
+          used: false,
+          yes: [],
+          no: [],
+          required: Math.floor(members.length / 2) + 1,
+          eligibleCount: members.length,
+        };
+      } else {
+        applyRoundDamage(room, g, result, baseDamage);
+      }
+    }
+
     // 사적 축적: 내지 않은 큐브가 점수가 된다.
     for (const p of members) {
       p.points += room.settings.cubes - p.contributions[r];
-      if (room.groups[g].fallen) p.out = true;
+      if (gr.fallen) p.out = true;
     }
 
-    roundResult.push({
-      total, storm: card.storm, pub: card.pub, hidden: card.hidden,
-      lo: card.lo, hi: card.hi,
-      ok, surplus: ok ? total - card.storm : 0, damage, fellNow,
-      topAmount, topNames,
-      damageAfter: room.groups[g].damage,
-    });
+    roundResult.push(result);
   }
   room.results[r] = roundResult;
 }
@@ -281,14 +436,26 @@ function stormView(room, g, revealHidden) {
   if (room.state !== 'playing' || !room.storms[room.round]) return null;
   const card = room.storms[room.round][g];
   if (!card) return null;
-  const v = { pub: card.pub, lo: card.lo, hi: card.hi, min: card.pub + card.lo, max: card.pub + card.hi };
+  let lo = card.lo;
+  let hi = card.hi;
+  if (!revealHidden && isEmergencyGroup(room, g)) {
+    lo = Math.max(0, lo - 1);
+    hi += 1;
+  }
+  const v = {
+    pub: card.pub, lo, hi,
+    min: card.pub + lo, max: card.pub + hi,
+    standard: harborStandard(room, card, playersInGroup(room, g).length),
+    cooperationNeed: cooperationNeed(playersInGroup(room, g).length),
+    emergency: isEmergencyGroup(room, g),
+  };
   if (revealHidden) { v.hidden = card.hidden; v.storm = card.storm; }
   return v;
 }
 
 function publicGroupInfo(room, g) {
   const members = playersInGroup(room, g);
-  const gr = room.groups[g] || { damage: 0, fallen: false, fallenRound: null };
+  const gr = room.groups[g] || { damage: 0, fallen: false, fallenRound: null, reinforcement: 0 };
   return {
     index: g,
     size: members.length,
@@ -298,6 +465,8 @@ function publicGroupInfo(room, g) {
       submitted: !!p.submitted,
     })),
     damage: gr.damage, fallen: gr.fallen, fallenRound: gr.fallenRound,
+    reinforcement: gr.reinforcement || 0,
+    emergency: isEmergencyGroup(room, g),
     submittedCount: members.filter(p => p.submitted).length,
   };
 }
@@ -305,13 +474,35 @@ function publicGroupInfo(room, g) {
 function finalRanking(room, g) {
   const members = playersInGroup(room, g);
   const fallen = room.groups[g] && room.groups[g].fallen;
+  const bonus = finalDamageBonus(room, g);
   const sorted = members.slice().sort((a, b) => b.points - a.points);
   let rank = 0, prev = null, shown = 0;
   return sorted.map(p => {
+    const finalPoints = p.points + bonus;
     shown++;
-    if (p.points !== prev) { rank = shown; prev = p.points; }
-    return { name: p.name, points: p.points, honor: p.honor, rank, fallen: !!fallen };
+    if (finalPoints !== prev) { rank = shown; prev = finalPoints; }
+    return {
+      name: p.name, points: finalPoints, basePoints: p.points,
+      finalBonus: bonus, honor: p.honor, rank, fallen: !!fallen,
+    };
   });
+}
+
+function resultView(result) {
+  if (!result) return result;
+  const view = { ...result };
+  if (result.shieldVote) {
+    view.shieldVote = {
+      open: result.shieldVote.open,
+      resolved: result.shieldVote.resolved,
+      used: result.shieldVote.used,
+      yesCount: result.shieldVote.yes.length,
+      noCount: result.shieldVote.no.length,
+      required: result.shieldVote.required,
+      eligibleCount: result.shieldVote.eligibleCount,
+    };
+  }
+  return view;
 }
 
 function teacherState(room) {
@@ -333,13 +524,16 @@ function teacherState(room) {
       const reveal = room.phase === 'resolve';
       info.stormCard = stormView(room, g, reveal);
       if (room.phase === 'resolve' && room.results[room.round]) {
-        info.result = room.results[room.round][g];
+        info.result = resultView(room.results[room.round][g]);
       }
     }
     if (room.state === 'finished') {
       info.ranking = finalRanking(room, g);
+      info.finalBonus = finalDamageBonus(room, g);
       info.history = (room.results || []).map(row => (row && row[g]) ? {
-        total: row[g].total, storm: row[g].storm, ok: row[g].ok, damage: row[g].damage, skipped: row[g].skipped,
+        total: row[g].total, storm: row[g].storm, ok: row[g].ok, damage: row[g].damage,
+        standard: row[g].standard, belowStandardCount: row[g].belowStandardCount,
+        cooperationSuccess: row[g].cooperationSuccess, skipped: row[g].skipped,
       } : null);
     }
     base.groups.push(info);
@@ -349,11 +543,13 @@ function teacherState(room) {
 
 function studentState(room, player) {
   const g = player.group;
+  const finalBonus = room.state === 'finished' ? finalDamageBonus(room, g) : 0;
   const base = {
     code: room.code, state: room.state, phase: room.phase, round: room.round,
     settings: room.settings, phaseEndsAt: room.phaseEndsAt, serverNow: now(),
     me: {
       name: player.name, group: g, points: player.points, honor: player.honor,
+      finalBonus, finalPoints: player.points + finalBonus,
       out: player.out, submitted: player.submitted,
       currentContribution: player.currentContribution,
     },
@@ -361,15 +557,20 @@ function studentState(room, player) {
     finishedReason: room.finishedReason,
     gamesPlayed: room.gamesPlayed,
   };
-  if (room.state === 'playing') {
+    if (room.state === 'playing') {
     base.stormCard = stormView(room, g, room.phase === 'resolve');
     if (room.phase === 'resolve' && room.results[room.round]) {
       const res = room.results[room.round][g];
-      base.result = res;
+      base.result = resultView(res);
       if (res && !res.skipped) {
         base.myContribution = player.contributions[room.round] ?? 0;
         base.myKept = room.settings.cubes - (player.contributions[room.round] ?? 0);
         base.myHonor = res.topNames.includes(player.name);
+        base.myMeetsStandard = base.myContribution >= res.standard;
+        if (res.shieldVote && res.shieldVote.open) {
+          base.myShieldVote = res.shieldVote.yes.includes(player.id)
+            ? 'yes' : res.shieldVote.no.includes(player.id) ? 'no' : null;
+        }
       }
     }
   }
@@ -418,7 +619,10 @@ function serveStatic(req, res, urlPath) {
   if (!full.startsWith(PUBLIC_DIR)) { res.writeHead(403); return res.end(); }
   fs.readFile(full, (err, buf) => {
     if (err) { res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }); return res.end('찾을 수 없는 페이지입니다.'); }
-    res.writeHead(200, { 'Content-Type': MIME[path.extname(full)] || 'application/octet-stream' });
+    res.writeHead(200, {
+      'Content-Type': MIME[path.extname(full)] || 'application/octet-stream',
+      'Cache-Control': 'no-store',
+    });
     res.end(buf);
   });
 }
@@ -561,6 +765,15 @@ async function handleApi(req, res, urlObj) {
       return sendJSON(res, 200, { ok: true, amount });
     }
 
+    // POST /api/rooms/:code/shieldVote
+    if (method === 'POST' && sub === 'shieldVote') {
+      const p = findPlayer(room, body.playerId, body.token);
+      if (!p) return sendJSON(res, 401, { error: 'bad-token' });
+      const result = castShieldVote(room, p, !!body.support);
+      if (!result.ok) return sendJSON(res, result.status || 409, { error: result.error || 'vote-failed' });
+      return sendJSON(res, 200, { ok: true });
+    }
+
     // POST /api/rooms/:code/teacher/<action>
     if (method === 'POST' && sub === 'teacher') {
       if (!requireTeacher(room, body)) return sendJSON(res, 401, { error: 'bad-token' });
@@ -610,6 +823,7 @@ async function handleApi(req, res, urlObj) {
         return sendJSON(res, 200, { ok: true });
       }
       if (action === 'endGame') {
+        if (room.state === 'playing' && room.phase === 'resolve') finalizeOpenShieldVotes(room, false);
         room.state = 'finished';
         room.phase = null;
         room.finishedReason = room.finishedReason || 'teacher';
