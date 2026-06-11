@@ -70,101 +70,36 @@
     </div>
   </div>
 
-    <a class="rules-jump" href="#rules">게임 방법 보기</a>
+    <a class="rules-jump" href="#rules">게임 방법 익히기 (연습 플레이)</a>
   </div>
 </section>
 
 <div class="wrap home-rules" id="rules">
 
-  <!-- 게임 방법 -->
-  <h2 style="margin-top:28px">📖 게임 방법</h2>
-  <p class="muted">처음이라면 위에서부터 차례대로 읽어 보세요. 5분이면 충분해요.</p>
+  <!-- 게임 방법 — 직접 해보는 연습 항해 -->
+  <h2 class="rules-title">⚓ 직접 해보며 배우는 게임</h2>
+  <p class="muted rules-lead">읽기만 하면 헷갈려요. 짧은 <b>연습 항해</b>로 한 라운드를 진짜처럼 플레이해 보세요.
+  버튼만 눌러 따라가면 2~3분 안에 룰이 손에 익어요.</p>
 
-  <details class="tut" open>
-    <summary><span class="step-no">?</span> 이 게임은 어떤 게임인가요?</summary>
-    <div class="body">
-      <p>우리는 폭풍이 몰아치는 <b>항구 도시의 상인들</b>이에요. 매달(라운드) 폭풍이 도시를 덮치는데,
-      모두가 자원을 모아 방파제를 쌓아야 도시가 버틸 수 있어요.</p>
-      <p>그런데 문제가 하나 있어요. 방파제에 <b>내지 않고 내 창고에 남긴 자원은 전부 내 점수</b>가 돼요.</p>
-      <p>그래서 이 게임에는 두 가지 마음이 늘 싸워요.</p>
-      <p>🌊 <b>"내가 안 내면 도시가 무너질지도 몰라."</b> — 도시가 무너지면 <b>모둠 전체가 패배</b>해요.<br>
-      📦 <b>"남들이 내겠지. 나는 좀 챙겨야지."</b> — 도시가 살아남으면 <b>가장 부유한 한 명만 승리</b>해요.</p>
-      <p>너무 아끼면 다 같이 망하고, 너무 다 내면 우승은 남의 것. 그 사이 어딘가에서 매 라운드 고민하는 게임이에요.</p>
-    </div>
-  </details>
+  <div class="card tutorial" id="tutorial">
+    <div class="tut-progress" id="tut-progress" aria-hidden="true"></div>
+    <div class="tut-stage" id="tut-stage"></div>
+  </div>
 
-  <details class="tut">
-    <summary><span class="step-no">1</span> 한 라운드는 이렇게 흘러가요</summary>
+  <details class="tut" id="rules-text">
+    <summary><span class="step-no">📖</span> 글로 된 규칙 전체 보기 (선생님·참고용)</summary>
     <div class="body">
-      <p><b>① 폭풍 예보</b> — 이번 달 폭풍의 세기가 <b>일부만</b> 공개돼요.
-      예를 들어 "확실한 세기 22 + 숨겨진 세기 8~16 사이"처럼요. 정확한 세기는 아무도 몰라요.</p>
-      <p><b>② 협상</b> — 모둠끼리 얼굴 보고 이야기해요. "나 7개 낼게", "다 같이 6개씩 내자" 같은 약속을 할 수 있어요.
-      하지만 약속은 <b>지키지 않아도 돼요</b>. 믿을지 말지는 각자의 판단!</p>
-      <p><b>③ 비밀 기여</b> — 각자 자기 기기에서 <b>몰래</b> 몇 개를 낼지 정하고 제출해요.
-      누가 몇 개 냈는지는 아무도 볼 수 없어요. 모둠의 <b>합계</b>와 <b>항구 기준 미달자 수</b>만 공개돼요.</p>
-      <p><b>④ 판정</b> — 숨겨진 폭풍 세기가 공개되고, 모둠이 낸 합계와 비교해요.</p>
-      <p style="padding-left:14px">🛡 합계 ≥ 폭풍 → 도시가 버텨요! (남는 자원은 파도에 쓸려가요. 너무 많이 내도 아까워요)<br>
-      💥 합계 &lt; 폭풍 → 도시가 <b>피해 1</b>을 입어요. 많이 모자라면(폭풍의 3/4도 못 막으면) <b>피해 2</b>!</p>
-      <p><b>⑤ 정산</b> — 내지 않고 남긴 자원이 내 점수로 쌓여요. 방어에 성공했고 <b>항구 기준 이상</b> 낸 사람 중
-      가장 많이 낸 사람은 이름이 공개되고 <b>명예 토큰(+2점)</b>을 받아요.</p>
-      <p><b>항구 기준</b>은 매 라운드 시스템이 보여 주는 개인 기준이에요. 감사와 공동 협력은 “1개 이상”이 아니라
-      <b>항구 기준 이상</b>인지로 판단해요.</p>
-    </div>
-  </details>
-
-  <details class="tut">
-    <summary><span class="step-no">2</span> 승리와 패배</summary>
-    <div class="body">
-      <table>
-        <tr><th>상황</th><th>결과</th></tr>
-        <tr><td>도시 피해가 <b>3</b>이 됨</td><td>도시 함락 — 그 모둠은 <b>전원 패배</b> 😱</td></tr>
-        <tr><td>마지막 라운드까지 도시가 버팀</td><td>최종 피해에 따라 전원 보정 후, 모둠에서 <b>점수가 가장 높은 사람이 우승</b> 🏆</td></tr>
-      </table>
-      <p style="margin-top:10px">점수 = 매 라운드 남긴 자원 + 명예 토큰(개당 2점) + 생존 보정.
-      생존 보정은 피해 0이면 +6점, 피해 1이면 +3점, 피해 2이면 0점이에요.</p>
-      <p>공동 협력 성공 조건은 <b>방어 성공 + 모둠원 80% 이상이 항구 기준 이상 기여</b>예요.
-      성공하면 방파제 강화가 1개 쌓이고, 강화 2개는 실패 시 투표로 사용할 수 있어요.</p>
-      <p class="muted">여러 모둠이 동시에 하면 모든 모둠에 <b>같은 폭풍</b>이 와요. 어느 도시가 살아남는지 비교해 보세요!</p>
-    </div>
-  </details>
-
-  <details class="tut">
-    <summary><span class="step-no">3</span> 예시로 보는 한 라운드</summary>
-    <div class="body">
-      <p>5명 모둠, 1인당 자원 10개(모둠 전체 50개)라고 해 봐요.</p>
-      <p>① 폭풍 예보: <b>확실한 세기 21 + 숨겨진 세기 9~17</b> → 최악이면 38까지 갈 수 있어요.<br>
-      ② 협상: 이번 항구 기준은 7개. "안전하게 8개씩 내자!"고 약속했어요.<br>
-      ③ 비밀 기여: 넷은 8개를 냈는데, 한 명이 몰래 3개만 냈어요. 합계 <b>35</b>.<br>
-      ④ 판정: 숨겨진 세기는 12 → 폭풍 <b>33</b>. 35 ≥ 33, 도시가 버텼어요! (2는 파도에 쓸려감)<br>
-      ⑤ 정산: 3개만 낸 친구는 점수를 챙겼지만 항구 기준에는 미달했어요. 감사에 걸리거나, 아슬아슬한 실패였다면 기록에 남을 수 있어요.</p>
-      <p>이게 이 게임의 핵심이에요. <b>덜 내면 이득이지만, 모두가 그렇게 생각하면 도시가 가라앉아요.</b></p>
-    </div>
-  </details>
-
-  <details class="tut">
-    <summary><span class="step-no">4</span> 튕겼을 때 / 다시 접속하기</summary>
-    <div class="body">
-      <p>걱정 마세요. 점수와 진행 상황은 모두 선생님 컴퓨터(서버)에 저장돼 있어요.</p>
-      <p><b>같은 기기</b>라면: 이 페이지를 다시 열면 <b>"하던 게임으로 돌아가기"</b> 버튼이 나와요. 누르면 끝.</p>
-      <p><b>다른 기기</b>거나 버튼이 없다면: 방 코드를 다시 입력하고, 목록에서 <b>내 이름을 골라 "이어서 하기"</b>를 누르세요.</p>
-      <p class="muted">친구 이름으로 들어가면 친구가 튕겨요. 꼭 자기 이름만 고르기!</p>
-    </div>
-  </details>
-
-  <details class="tut">
-    <summary><span class="step-no">5</span> 선생님을 위한 안내</summary>
-    <div class="body">
-      <p><b>준비</b>: 교사 화면에서 방을 만들고(라운드 수·모둠 수 설정) QR코드를 프로젝터에 띄우면, 학생들이 태블릿·스마트폰으로 접속해요. 모두 <b>같은 와이파이</b>에 있어야 해요.</p>
-      <p><b>진행</b>: 단계 전환은 모두 선생님의 <b>"다음 단계"</b> 버튼으로 이뤄져요. 협상 시간에는 화면에 타이머가 돌아가요.
-      교사 화면은 개인 점수·개인 기여량을 보여 주지 않아서 <b>프로젝터에 띄워도 안전</b>해요.
-      실패 시에는 항구 기준 미달자 수만 공개되고, 1~2개 차이의 아슬아슬한 실패에서만 기준 미달자 중 한 명이 기록에 남을 수 있어요.</p>
-      <p><b>수업 연결</b>: 이 게임은 '문턱 공공재 게임'의 체험판이에요. 끝나고 이런 질문으로 토론해 보세요.</p>
-      <p style="padding-left:14px">· 왜 세금은 자발적 기부가 아니라 강제일까?<br>
-      · 기여가 익명이 아니었다면 우리 모둠은 어떻게 달라졌을까?<br>
-      · 도시가 무너진 모둠은 무엇이 부족했을까 — 자원일까, 신뢰일까?<br>
-      · 두 번째 판에서 우리 모둠의 작전은 어떻게 바뀌었나?</p>
-      <p><b>추천</b>: 같은 모둠으로 <b>두 판 연속</b> 진행해 보세요(게임 종료 후 "한 판 더" 버튼). 첫 판의 경험이 두 번째 판의 전략을 바꾸는 과정 자체가 최고의 토론거리예요.</p>
-      <p class="muted">권장: 모둠당 4~6명 · 6라운드 · 설명 10분 + 플레이 25분 + 토론 10분.</p>
+      <p><b>한 라운드</b>: ① 폭풍 예보(세기 일부만 공개) → ② 협상(약속은 자유, 안 지켜도 됨) →
+      ③ 비밀 기여(각자 몰래 제출, 합계·기준 미달자 수만 공개) → ④ 판정(숨은 세기 공개 후 합계와 비교) →
+      ⑤ 정산(남긴 자원이 내 점수).</p>
+      <p>🛡 합계 ≥ 폭풍 → 도시 방어 성공(남는 자원은 파도에 쓸려감). 💥 합계 &lt; 폭풍 → 피해 1
+      (폭풍의 3/4도 못 막으면 피해 2).</p>
+      <p><b>항구 기준</b>: 매 라운드 제시되는 개인 기준. 방어 성공 + 기준 이상 기여한 최다 기여자는
+      <b>명예 토큰(+2점)</b>. 방어 성공 + 모둠원 80% 이상이 기준 이상이면 <b>방파제 강화 +1</b>(강화 2개는 실패 시 투표로 사용).</p>
+      <p><b>승패</b>: 피해 3 → 도시 함락, 모둠 전원 패배. 끝까지 버티면 최종 피해 보정(피해 0 → +6점, 1 → +3점, 2 → 0점)
+      후 점수 1등이 우승. 점수 = 남긴 자원 + 명예 토큰 + 생존 보정.</p>
+      <p class="muted">선생님: 단계 전환은 교사 화면의 "다음 단계" 버튼으로 진행돼요. 권장 모둠당 4~6명 · 6라운드.
+      디브리핑 질문 — 왜 세금은 자발적 기부가 아니라 강제일까? 기여가 익명이 아니었다면 우리 모둠은 어떻게 달라졌을까?</p>
     </div>
   </details>
 
@@ -299,6 +234,294 @@ $('#claim-btn').onclick = async () => {
   localStorage.setItem('bp_student', JSON.stringify({ code: peeked.code, playerId: d.playerId, token: d.token, name }));
   location.href = 'student.html';
 };
+
+/* =====================================================================
+   연습 항해 — 인터랙티브 튜토리얼
+   학생이 직접 한 라운드(때로는 두 라운드)를 플레이하며 룰을 익힌다.
+   서버와 무관하게 클라이언트에서만 동작하는 시뮬레이션.
+   ===================================================================== */
+const TUT = {
+  cubes: 10,
+  crew: ['미루', '한솔', '도윤', '바다'],   // 나(+4명) = 5인 모둠
+  rounds: [
+    {
+      title: '첫 폭풍',
+      pub: 18, lo: 5, hi: 11, storm: 26, standard: 7, need: 4,
+      crewGive: [6, 6, 5, 5],   // 합계 22 → 나의 선택이 도시 생사를 가른다
+      promises: [
+        '안전하게 7개씩 내자! 도시 무너지면 다 같이 패배야.',
+        '난 6개 낼게. 조금은 남겨야지…',
+        '난 5개 정도? 점수도 챙기고 싶어.',
+        '다 같이 막아보자, 믿는다!',
+      ],
+    },
+    {
+      title: '거센 폭풍, 그리고 욕심',
+      pub: 24, lo: 8, hi: 16, storm: 36, standard: 9, need: 4,
+      crewGive: [3, 2, 4, 2],   // 합계 11 → 친구들이 자원을 아낀다(무임승차)
+      promises: [
+        '이번엔 좀 챙길래. 남들이 내겠지.',
+        '글쎄… 난 조금만 낼래.',
+        '폭풍 세지만… 점수도 필요하잖아?',
+        '에이, 설마 무너지겠어?',
+      ],
+    },
+  ],
+  state: null,
+};
+
+const tutStage = document.getElementById('tut-stage');
+
+function tutStart() {
+  TUT.state = { round: 0, step: 0, choice: null, damage: 0, totalPoints: 0, results: [] };
+  tutRender();
+}
+
+// step: 0 예보 · 1 협상 · 2 비밀기여 · 3 판정  (라운드마다 반복)
+const TUT_STEPS = ['🌩 폭풍 예보', '🗣 협상', '🤫 비밀 기여', '⚖ 판정'];
+
+function tutProgress() {
+  const el = document.getElementById('tut-progress');
+  if (!el) return;
+  const total = TUT.rounds.length * 4;
+  const cur = TUT.state.round * 4 + TUT.state.step;
+  el.innerHTML = Array.from({ length: total }, (_, i) =>
+    `<span class="tut-step-dot ${i === cur ? 'on' : i < cur ? 'done' : ''}"></span>`).join('');
+}
+
+function tutTopbar() {
+  const r = TUT.state.round;
+  const dmg = `<span class="damage">${[0, 1, 2].map(i => `<span class="pip ${i < TUT.state.damage ? 'hit' : ''}"></span>`).join('')}</span>`;
+  return `<div class="tut-topbar">
+    <span class="badge">바다모둠</span>
+    <b style="font-size:15px">연습 ${r + 1}라운드</b>
+    <span style="font-size:14px">내 점수 <b>${TUT.state.totalPoints}</b></span>
+    ${dmg}
+    <span class="crew">상인 5명 · 1인당 자원 ${TUT.cubes}개</span>
+  </div>`;
+}
+
+function tutResult(round, choice) {
+  const crewSum = round.crewGive.reduce((a, b) => a + b, 0);
+  const total = crewSum + choice;
+  const ok = total >= round.storm;
+  const damage = ok ? 0 : (total < 0.75 * round.storm ? 2 : 1);
+  // 명예: 방어 성공 시, 기준 이상 기여자 중 최다 기여자
+  const all = [...round.crewGive, choice];
+  const metStandard = all.filter(v => v >= round.standard);
+  const top = metStandard.length ? Math.max(...metStandard) : 0;
+  const iAmTop = ok && choice >= round.standard && choice === top && choice > 0;
+  const kept = TUT.cubes - choice;
+  const honor = iAmTop ? 2 : 0;
+  return { crewSum, total, ok, damage, kept, honor, iAmTop, surplus: ok ? total - round.storm : 0, shortfall: ok ? 0 : round.storm - total };
+}
+
+function tutRender() {
+  tutProgress();
+  const s = TUT.state;
+  const round = TUT.rounds[s.round];
+  if (s.step === 0) return tutForecast(round);
+  if (s.step === 1) return tutNegotiate(round);
+  if (s.step === 2) return tutContribute(round);
+  if (s.step === 3) return tutResolve(round);
+}
+
+function tutForecast(round) {
+  tutStage.innerHTML = `${tutTopbar()}
+    <div class="phases">${TUT_STEPS.map((t, i) =>
+      `<div class="phase-pill ${i === 0 ? 'on' : ''}">${t.replace(/^.. /, '')}</div>`).join('')}</div>
+    <div class="center">
+      <span class="tut-eyebrow">🌩 폭풍 예보</span>
+      <h3 class="tut-title">${round.title}</h3>
+      <p>이번 폭풍의 세기는 <b>일부만</b> 공개돼요. 정확한 세기는 아무도 몰라요.</p>
+      <p style="margin-bottom:2px">확실한 세기</p>
+      <p class="num huge">${round.pub}</p>
+      <p style="margin-bottom:2px">+ 숨겨진 세기</p>
+      <p class="num" style="color:var(--storm)">${round.lo} ~ ${round.hi}</p>
+      <p class="banner" style="background:var(--storm-pale);color:var(--storm);justify-content:center">
+        폭풍은 <b style="margin:0 4px">${round.pub + round.lo} ~ ${round.pub + round.hi}</b> 사이로 와요</p>
+      <p class="tut-note">이번 <b>항구 기준</b>은 <b>${round.standard}개</b>예요. 이만큼 이상 내야
+      '명예'와 '공동 협력'에 들어가요. 우리 자원은 다 합쳐 ${TUT.cubes * 5}개… 막을 수 있을까요?</p>
+    </div>
+    <div class="tut-nav">
+      <button class="btn big" id="tut-next">🗣 협상하러 가기</button>
+    </div>`;
+  document.getElementById('tut-next').onclick = () => { TUT.state.step = 1; tutRender(); };
+}
+
+function tutNegotiate(round) {
+  const bubbles = round.promises.map((p, i) =>
+    `<div class="tut-bubble"><span class="who">${TUT.crew[i]}</span>${p}</div>`).join('');
+  tutStage.innerHTML = `${tutTopbar()}
+    <div class="phases">${TUT_STEPS.map((t, i) =>
+      `<div class="phase-pill ${i === 1 ? 'on' : i < 1 ? 'done' : ''}">${t.replace(/^.. /, '')}</div>`).join('')}</div>
+    <div class="center">
+      <span class="tut-eyebrow">🗣 협상</span>
+      <h3 class="tut-title">모둠과 작전 짜기</h3>
+      <p class="muted">실제 게임에선 얼굴을 보고 이야기해요. 친구들이 이렇게 말하네요…</p>
+    </div>
+    <div class="tut-chat">${bubbles}
+      <div class="tut-bubble you"><span class="who">나</span>음… 누구 말을 믿어야 하지? 🤔</div>
+    </div>
+    <p class="tut-note">핵심: <b>약속은 지켜도, 안 지켜도 돼요.</b> 그리고 누가 실제로 몇 개 냈는지는
+    아무도 볼 수 없어요. 그래서 다음 '비밀 기여'가 진짜 승부예요.</p>
+    <div class="tut-nav">
+      <button class="btn ghost back" id="tut-back">← 예보</button>
+      <button class="btn big" id="tut-next">🤫 비밀 기여하기</button>
+    </div>`;
+  document.getElementById('tut-back').onclick = () => { TUT.state.step = 0; tutRender(); };
+  document.getElementById('tut-next').onclick = () => { TUT.state.step = 2; tutRender(); };
+}
+
+function tutContribute(round) {
+  const s = TUT.state;
+  const n = TUT.cubes;
+  const chosen = s.choice === null ? '?' : s.choice;
+  const kept = s.choice === null ? '?' : n - s.choice;
+  tutStage.innerHTML = `${tutTopbar()}
+    <div class="phases">${TUT_STEPS.map((t, i) =>
+      `<div class="phase-pill ${i === 2 ? 'on' : i < 2 ? 'done' : ''}">${t.replace(/^.. /, '')}</div>`).join('')}</div>
+    <div class="center">
+      <span class="tut-eyebrow">🤫 비밀 기여</span>
+      <h3 class="tut-title">몰래 정하세요</h3>
+      <p class="muted">상자를 눌러 방파제에 낼 개수를 정해요. 아무도 볼 수 없어요.</p>
+      <p class="rule-line center">이번 항구 기준 <b>${round.standard}개</b> · 폭풍 예보 ${round.pub + round.lo}~${round.pub + round.hi}</p>
+    </div>
+    <div class="cubes" id="tut-cubes">
+      ${Array.from({ length: n }, (_, i) =>
+        `<button class="cube ${s.choice !== null && i < s.choice ? 'give' : ''}" data-i="${i}" aria-label="${i + 1}개"></button>`).join('')}
+    </div>
+    <div class="tut-kpi">
+      <div><p class="lbl">🌊 방파제에</p><p class="val" style="color:var(--teal-dark)">${chosen}</p></div>
+      <div><p class="lbl">📦 내 창고에</p><p class="val" style="color:var(--amber-dark)">${kept}</p></div>
+    </div>
+    <p class="center"><button class="btn small ghost" id="tut-zero">0개 내기</button></p>
+    <div class="tut-nav">
+      <button class="btn ghost back" id="tut-back">← 협상</button>
+      <button class="btn big" id="tut-next" ${s.choice === null ? 'disabled' : ''}>이대로 제출하기</button>
+    </div>`;
+  document.getElementById('tut-cubes').addEventListener('click', e => {
+    const b = e.target.closest('.cube');
+    if (!b) return;
+    const i = parseInt(b.dataset.i, 10);
+    s.choice = (s.choice === i + 1) ? i : i + 1;
+    tutRender();
+  });
+  document.getElementById('tut-zero').onclick = () => { s.choice = 0; tutRender(); };
+  document.getElementById('tut-back').onclick = () => { s.step = 1; tutRender(); };
+  document.getElementById('tut-next').onclick = () => {
+    if (s.choice === null) return;
+    s.step = 3; tutRender();
+  };
+}
+
+function tutResolve(round) {
+  const s = TUT.state;
+  const res = tutResult(round, s.choice);
+  // 이 라운드 효과를 한 번만 누적
+  if (!s.results[s.round]) {
+    s.results[s.round] = res;
+    s.totalPoints += res.kept + res.honor;
+    s.damage += res.damage;
+  }
+  const fell = s.damage >= 3;
+  const pct = Math.min(100, Math.round(res.total / Math.max(round.storm, res.total, 1) * 100));
+  const markPct = Math.min(98, Math.round(round.storm / Math.max(round.storm, res.total, 1) * 100));
+
+  // 선택에 따른 맞춤 코칭
+  let coach = '';
+  if (s.round === 0) {
+    if (!res.ok) coach = `너무 아꼈어요. 내 점수는 챙겼지만 <b>도시가 피해를 입었어요</b>. 모두가 이렇게 생각하면 도시는 가라앉아요. 균형이 핵심이에요!`;
+    else if (s.choice >= 9) coach = `막아냈지만 거의 다 냈네요! 남는 ${res.surplus}개는 파도에 쓸려가 <b>아까워요</b>. 점수(남긴 자원)는 ${res.kept}개로 적어요. 딱 필요한 만큼만 내는 게 고수예요.`;
+    else if (res.iAmTop) coach = `완벽해요! 막아냈고, 항구 기준 이상 최다 기여로 <b>명예 토큰(+2점)</b>까지 받았어요. 도시도 지키고 점수도 챙겼죠.`;
+    else coach = `잘했어요! 도시를 지키면서 ${res.kept}개를 창고에 남겨 점수로 챙겼어요. 이게 이 게임의 줄타기예요.`;
+  } else {
+    coach = s.choice >= round.standard
+      ? `당신은 최선을 다했어요. 하지만 <b>친구들이 자원을 아끼면 혼자서는 막을 수 없어요</b>. 도시가 피해를 입었죠. 그래서 '협상'에서 서로를 설득하는 게 중요해요.`
+      : `친구들도, 나도 아꼈더니 <b>도시가 크게 무너졌어요</b>. 모두가 "남이 내겠지" 하면 결국 다 같이 패배해요. 이게 무임승차의 함정이에요.`;
+  }
+
+  tutStage.innerHTML = `${tutTopbar()}
+    <div class="phases">${TUT_STEPS.map((t, i) =>
+      `<div class="phase-pill ${i === 3 ? 'on' : 'done'}">${t.replace(/^.. /, '')}</div>`).join('')}</div>
+    <div class="center">
+      <span class="tut-eyebrow">⚖ 판정</span>
+      <h3 class="tut-title">결과</h3>
+      <p>숨겨졌던 세기가 공개됐어요 — 폭풍 <b class="display" style="font-size:24px">${round.storm}</b>!</p>
+    </div>
+    <div class="gauge">
+      <div class="bar"><div class="fill ${res.ok ? '' : 'fail'}" style="width:${pct}%"></div><div class="mark" style="left:${markPct}%"></div></div>
+      <div class="nums"><span>우리가 낸 합계 <b>${res.total}</b></span><span>폭풍 <b>${round.storm}</b></span></div>
+    </div>
+    ${res.ok
+      ? `<div class="banner ok">막아냈다! ${res.surplus > 0 ? `${res.surplus}개는 파도에 쓸려갔어요.` : '한 개도 안 남기고 딱 막았어요!'}</div>`
+      : `<div class="banner bad">못 막았다! 도시 피해 +${res.damage}${fell ? ' — <b>도시가 무너졌어요…</b>' : ''}</div>`}
+    ${res.iAmTop ? `<div class="banner honor">명예 보상: 기준 이상 최다 기여 — <b>나!</b> (+2점)</div>` : ''}
+    <div class="tut-points">
+      <span>이번 라운드</span>
+      <span>🌊 낸 <b>${s.choice}</b>개 · 📦 남긴 <b>${res.kept}</b>개${res.honor ? ' · 🏅 +2' : ''}</span>
+      <span>→ <span class="big">+${res.kept + res.honor}점</span></span>
+    </div>
+    <p class="tut-note">${coach}</p>
+    <div class="tut-nav">
+      ${tutNextAfterResolve(fell)}
+    </div>`;
+  const nx = document.getElementById('tut-next');
+  if (nx) nx.onclick = tutAdvanceAfterResolve;
+}
+
+function tutNextAfterResolve(fell) {
+  const s = TUT.state;
+  const lastRound = s.round >= TUT.rounds.length - 1;
+  if (fell || lastRound) return `<button class="btn big" id="tut-next">🏁 정리하기</button>`;
+  return `<button class="btn big" id="tut-next">▶ ${s.round + 2}라운드로</button>`;
+}
+
+function tutAdvanceAfterResolve() {
+  const s = TUT.state;
+  const fell = s.damage >= 3;
+  const lastRound = s.round >= TUT.rounds.length - 1;
+  if (fell || lastRound) return tutOutro();
+  s.round += 1; s.step = 0; s.choice = null;
+  tutRender();
+}
+
+function tutOutro() {
+  document.getElementById('tut-progress').innerHTML =
+    Array.from({ length: TUT.rounds.length * 4 }, () => '<span class="tut-step-dot done"></span>').join('');
+  const fell = TUT.state.damage >= 3;
+  tutStage.innerHTML = `
+    <div class="center">
+      <span class="tut-eyebrow">🎓 연습 끝</span>
+      <h3 class="tut-title">이제 룰이 손에 익었어요!</h3>
+      <p>방금 한 라운드는 늘 이 순서예요:</p>
+    </div>
+    <div class="phases" style="margin-top:6px">
+      <div class="phase-pill done">예보</div>
+      <div class="phase-pill done">협상</div>
+      <div class="phase-pill done">비밀 기여</div>
+      <div class="phase-pill done">판정</div>
+      <div class="phase-pill on">정산</div>
+    </div>
+    <p class="tut-note" style="background:var(--teal-pale);border-color:rgba(13,90,78,.2);color:var(--teal-dark)">
+      🌊 <b>방파제에 낸 것</b> → 도시를 지켜요 (모두 무너지면 전원 패배)<br>
+      📦 <b>창고에 남긴 것</b> → 내 점수가 돼요 (살아남으면 1등만 우승)<br>
+      ⚓ <b>항구 기준 이상</b> 내야 명예·공동 협력에 들어가요.<br>
+      ${fell ? '이번 연습에선 도시가 무너졌죠? 실전에선 서로를 설득해 함께 막아보세요.' : '너무 아끼면 다 같이 가라앉고, 너무 다 내면 우승은 남의 것. 그 사이를 노리세요!'}
+    </p>
+    <div class="tut-nav">
+      <button class="btn ghost back" id="tut-replay">🔁 다시 연습</button>
+      <button class="btn big" id="tut-join">⚓ 실전 게임 참여하기</button>
+    </div>`;
+  document.getElementById('tut-replay').onclick = tutStart;
+  document.getElementById('tut-join').onclick = () => {
+    const card = document.getElementById('join-card');
+    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    window.setTimeout(() => { const ci = document.getElementById('code-input'); if (ci) ci.focus(); }, 260);
+  };
+}
+
+if (tutStage) tutStart();
 </script>
 </body>
 </html>

@@ -611,3 +611,325 @@ details.tut .body { padding: 0 18px 16px; }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
 }
+
+/* ============================================================
+   테마 강화 (Breakwater theme polish)
+   — 아래 규칙은 위 기본 스타일을 게임 일러스트(폭풍 항구·등대·
+     양피지·나무 상자) 톤에 맞춰 보강합니다. 클래스명은 그대로라
+     HTML/JS 변경 없이 외관만 깊어집니다.
+   ============================================================ */
+
+/* 양피지 카드 — 이중 테두리와 따뜻한 종이 질감 */
+.card {
+  position: relative;
+  border: 1px solid rgba(96, 64, 38, 0.34);
+  box-shadow:
+    0 20px 44px rgba(0, 12, 26, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+.card::before {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border: 1px solid rgba(120, 84, 48, 0.28);
+  border-radius: calc(var(--radius) - 7px);
+  pointer-events: none;
+}
+.card.tight::before { inset: 5px; }
+.card > *:first-child { margin-top: 0; }
+
+/* 입체 버튼 — 눌리는 나무/금속 느낌 */
+.btn {
+  position: relative;
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.28),
+    inset 0 -4px 0 rgba(0, 0, 0, 0.2),
+    0 4px 0 rgba(0, 0, 0, 0.22),
+    0 9px 18px rgba(0, 20, 40, 0.2);
+}
+.btn:active {
+  transform: translateY(3px);
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.22),
+    inset 0 -3px 0 rgba(0, 0, 0, 0.18),
+    0 1px 0 rgba(0, 0, 0, 0.22),
+    0 5px 12px rgba(0, 20, 40, 0.18);
+}
+.btn.ghost {
+  box-shadow: inset 0 0 0 2px var(--teal), 0 4px 10px rgba(0, 20, 40, 0.12);
+}
+.btn.ghost:active { transform: translateY(2px); }
+
+/* 나무 상자 큐브 — 닻 각인이 박힌 자원 토큰 */
+.cube {
+  width: 46px; height: 46px;
+  border-radius: 11px;
+  border: 0;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.34), transparent 42%),
+    linear-gradient(155deg, #d79c58 0%, #ba7c38 52%, #9a6128 100%);
+  box-shadow:
+    inset 0 2px 0 rgba(255, 247, 224, 0.62),
+    inset 0 -5px 0 rgba(90, 52, 18, 0.42),
+    inset 0 0 0 2px rgba(86, 50, 20, 0.5),
+    0 3px 6px rgba(28, 16, 4, 0.3);
+}
+.cube::after {
+  content: '⚓';
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border: 0;
+  opacity: 1;
+  font-size: 19px;
+  color: rgba(74, 40, 14, 0.5);
+  text-shadow: 0 1px 0 rgba(255, 240, 210, 0.55);
+}
+.cube.give {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.34), transparent 42%),
+    linear-gradient(155deg, #2ec3b2 0%, #149b8c 52%, #0c7468 100%);
+  box-shadow:
+    inset 0 2px 0 rgba(220, 255, 250, 0.55),
+    inset 0 -5px 0 rgba(4, 52, 46, 0.5),
+    inset 0 0 0 2px rgba(6, 60, 53, 0.6),
+    0 3px 8px rgba(4, 40, 36, 0.34);
+}
+.cube.give::after {
+  color: rgba(240, 255, 252, 0.92);
+  text-shadow: 0 1px 0 rgba(4, 60, 53, 0.5);
+}
+.cube:not(.readonly):hover { transform: translateY(-1px); filter: brightness(1.05); }
+
+/* 단계 표시 — 돌에 새긴 듯한 칩 */
+.phase-pill {
+  background: rgba(20, 51, 62, 0.1);
+  border: 1px solid rgba(20, 51, 62, 0.14);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  font-family: 'Jua', 'Malgun Gothic', system-ui, sans-serif;
+}
+.phase-pill.on {
+  background: linear-gradient(180deg, #1d4b59, #0c2c38);
+  color: #f4fbfa;
+  border-color: rgba(0, 0, 0, 0.3);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 3px 8px rgba(0, 20, 30, 0.28);
+}
+.phase-pill.done {
+  background: linear-gradient(180deg, #d9ece8, #c4e0d9);
+  color: var(--teal-dark);
+  border-color: rgba(13, 90, 78, 0.24);
+}
+
+/* 방파제 게이지 — 거친 바다 위에 쌓이는 돌벽 */
+.gauge .bar {
+  background: linear-gradient(180deg, #2f4658, #213749);
+  border: 1px solid rgba(0, 0, 0, 0.32);
+  box-shadow: inset 0 3px 7px rgba(0, 0, 0, 0.4), inset 0 -2px 0 rgba(255, 255, 255, 0.06);
+  height: 36px;
+}
+.gauge .fill {
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.08) 0 13px, transparent 13px 14px),
+    linear-gradient(180deg, #3fb6a4, #0d7466);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.32), inset 0 -3px 0 rgba(4, 52, 46, 0.4);
+}
+.gauge .fill.fail {
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.08) 0 13px, transparent 13px 14px),
+    linear-gradient(180deg, #e3674f, #b23c27);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.28), inset 0 -3px 0 rgba(120, 32, 18, 0.5);
+}
+.gauge .mark { background: #ffe7a6; box-shadow: 0 0 0 1px rgba(60, 30, 6, 0.6), 0 0 8px rgba(255, 210, 120, 0.6); }
+.gauge .mark::after {
+  content: '🌊 폭풍';
+  font-family: 'Jua', system-ui, sans-serif;
+  color: #0c2c38;
+}
+
+/* 피해 트랙 — 등대 불빛 */
+.damage .pip {
+  background: radial-gradient(circle at 50% 38%, #eaf6f3, #cfe6e0);
+  border-color: var(--teal);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+.damage .pip.hit {
+  background: radial-gradient(circle at 50% 35%, #ffb38e, #d6543e);
+  border-color: var(--coral-dark);
+  box-shadow: 0 0 7px rgba(214, 84, 62, 0.6);
+}
+
+/* 결과 배너 — 현판/리본 톤 (학생·교사 배너는 본문에 이미 이모지가 있어
+   장식 아이콘은 추가하지 않고 입체감만 보강) */
+.banner {
+  position: relative;
+  border: 0;
+  box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.42), 0 8px 18px rgba(0, 16, 30, 0.14);
+  font-size: 15px;
+}
+/* 튜토리얼의 결과 배너만 좌측 장식 아이콘을 붙인다(본문 이모지 없음) */
+.tutorial .banner.ok,
+.tutorial .banner.bad,
+.tutorial .banner.honor { padding-left: 44px; }
+.tutorial .banner.ok::before,
+.tutorial .banner.bad::before,
+.tutorial .banner.honor::before {
+  position: absolute;
+  left: 13px; top: 50%;
+  transform: translateY(-50%);
+  font-size: 18px;
+}
+.tutorial .banner.ok::before { content: '🛡'; }
+.tutorial .banner.bad::before { content: '💥'; }
+.tutorial .banner.honor::before { content: '🏅'; }
+
+/* 모둠 카드 (교사) — 항구 게시판 톤 */
+.group-card { position: relative; box-shadow: 0 14px 30px rgba(0, 13, 28, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.5); }
+.group-card.fallen {
+  background: linear-gradient(180deg, #f6ece8, #ecd9d2);
+  box-shadow: 0 14px 30px rgba(80, 20, 10, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+/* 순위 현판 */
+.rank-row {
+  background: linear-gradient(180deg, rgba(20, 51, 62, 0.07), rgba(20, 51, 62, 0.13));
+  border: 1px solid rgba(20, 51, 62, 0.1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+.rank-row.first {
+  background: linear-gradient(180deg, #fcebca, #f4d89c);
+  border: 2px solid var(--amber);
+  box-shadow: 0 8px 18px rgba(160, 110, 20, 0.26), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+/* 타이머 — 양피지 위 모래시계 숫자 */
+.timer { color: #0c2c38; text-shadow: 0 2px 0 rgba(255, 255, 255, 0.55); }
+.timer.low { color: var(--coral); text-shadow: 0 2px 0 rgba(255, 230, 222, 0.6); }
+
+/* 큰 숫자 — 살짝 음각 */
+.num { color: var(--teal-dark); text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5); }
+.num.huge { color: var(--storm); }
+
+/* 배지 — 가장자리 광택 */
+.badge { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5); font-family: 'Jua', system-ui, sans-serif; }
+
+/* ============================================================
+   연습 항해 (인터랙티브 튜토리얼)
+   ============================================================ */
+.rules-title {
+  text-align: center;
+  margin-top: 30px;
+  font-size: 26px;
+  color: var(--teal-dark);
+}
+.rules-lead { text-align: center; max-width: 640px; margin: 0 auto 18px; }
+
+.tutorial {
+  max-width: 600px;
+  margin: 0 auto 18px;
+  padding: 0;
+  overflow: hidden;
+}
+.tut-topbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 14px 18px;
+  background: linear-gradient(180deg, #0e2d3c, #0a2230);
+  color: #eaf6f3;
+  border-bottom: 3px solid rgba(0, 0, 0, 0.25);
+}
+.tut-topbar .badge { background: rgba(255, 255, 255, 0.16); color: #fff; }
+.tut-topbar .crew { margin-left: auto; font-size: 13px; color: #9fc6c0; }
+.tut-topbar .damage { margin-left: 4px; }
+
+.tut-progress { display: flex; gap: 5px; padding: 12px 16px 0; }
+.tut-step-dot {
+  flex: 1; height: 7px; border-radius: 999px;
+  background: rgba(20, 51, 62, 0.15);
+}
+.tut-step-dot.on { background: linear-gradient(90deg, #167d6c, #25bfae); }
+.tut-step-dot.done { background: var(--teal); }
+
+.tut-stage { padding: 16px 18px 22px; }
+.tut-stage .num.huge { line-height: 1; margin: 6px 0; }
+.tut-eyebrow {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 5px 14px; border-radius: 999px;
+  background: var(--teal-pale); color: var(--teal-dark);
+  font-family: 'Jua', system-ui, sans-serif; font-size: 14px;
+}
+.tut-stage h3.tut-title {
+  text-align: center;
+  font-size: 24px;
+  margin: 10px 0 4px;
+}
+
+/* 협상 말풍선 */
+.tut-chat { display: grid; gap: 9px; margin: 14px 0; }
+.tut-bubble {
+  position: relative;
+  max-width: 86%;
+  padding: 9px 14px;
+  border-radius: 14px 14px 14px 4px;
+  background: #fff;
+  border: 1px solid rgba(20, 51, 62, 0.14);
+  box-shadow: 0 3px 8px rgba(0, 16, 30, 0.08);
+  font-size: 15px;
+}
+.tut-bubble .who { display: block; font-size: 12px; color: var(--ink-soft); margin-bottom: 1px; }
+.tut-bubble.you {
+  margin-left: auto;
+  border-radius: 14px 14px 4px 14px;
+  background: var(--teal-pale);
+  border-color: rgba(13, 90, 78, 0.2);
+}
+
+/* KPI(이번에 / 내 창고에) 카드 */
+.tut-kpi { display: flex; gap: 12px; justify-content: center; margin: 8px 0; }
+.tut-kpi > div {
+  flex: 1; max-width: 150px; text-align: center;
+  padding: 8px 6px; border-radius: 14px;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(20, 51, 62, 0.12);
+}
+.tut-kpi .lbl { margin: 0; font-size: 13px; color: var(--ink-soft); }
+.tut-kpi .val { font-family: 'Jua', system-ui, sans-serif; font-size: 30px; line-height: 1.1; }
+
+.tut-note {
+  margin: 12px 0 0;
+  padding: 11px 14px;
+  border-radius: 12px;
+  background: rgba(224, 154, 45, 0.12);
+  border: 1px solid rgba(138, 90, 13, 0.22);
+  color: #6f4711;
+  font-size: 14px;
+}
+.tut-note b { color: #5a3a0c; }
+
+.tut-roster { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin: 10px 0; }
+.tut-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 11px; border-radius: 999px;
+  background: rgba(20, 51, 62, 0.07);
+  border: 1px solid rgba(20, 51, 62, 0.12);
+  font-size: 14px;
+}
+.tut-chip.me { background: var(--teal-pale); border-color: rgba(13, 90, 78, 0.24); color: var(--teal-dark); font-weight: 600; }
+
+.tut-nav { display: flex; gap: 10px; margin-top: 16px; }
+.tut-nav .btn { flex: 1; }
+.tut-nav .btn.back { flex: 0 0 auto; }
+
+.tut-points {
+  display: flex; align-items: baseline; justify-content: center; gap: 8px;
+  margin: 10px 0; padding: 10px; border-radius: 14px;
+  background: var(--amber-pale); border: 1px solid rgba(138, 90, 13, 0.2);
+}
+.tut-points .big { font-family: 'Jua', system-ui, sans-serif; font-size: 30px; color: var(--amber-dark); }
+
+@media (max-width: 480px) {
+  .tut-kpi .val { font-size: 26px; }
+  .tut-stage h3.tut-title { font-size: 21px; }
+}
