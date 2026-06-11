@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>방파제 — 폭풍을 함께 막아라</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="masthead">
+  <div class="inner">
+    <h1>⚓ 방파제</h1>
+    <p class="tag">폭풍은 함께 막고, 부자는 혼자 된다 — 협력과 배신의 항구 도시 게임</p>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <!-- 학생: 게임 참여 -->
+  <div class="card" id="join-card">
+    <h2>🎒 학생 — 게임 들어가기</h2>
+    <div id="resume-box" style="display:none">
+      <button class="btn big" id="resume-btn">▶ 하던 게임으로 돌아가기</button>
+      <p class="muted center" style="margin-top:8px">튕겼어도 괜찮아요. 점수는 그대로 남아 있어요.</p>
+      <div class="spacer"></div>
+    </div>
+
+    <div id="join-step1">
+      <label class="field"><span>선생님 화면에 나온 4글자 방 코드</span>
+        <input type="text" id="code-input" class="code-input" maxlength="4" autocomplete="off" placeholder="ABCD">
+      </label>
+      <button class="btn big" id="code-btn">다음</button>
+      <p class="muted" id="code-msg" style="margin-top:8px"></p>
+    </div>
+
+    <div id="join-step2" style="display:none">
+      <p><span class="badge teal" id="room-label"></span></p>
+      <label class="field"><span>내 이름 (반에서 부르는 이름)</span>
+        <input type="text" id="name-input" maxlength="12" autocomplete="off" placeholder="예: 김바다">
+      </label>
+      <label class="field"><span>내 모둠</span>
+        <select id="group-select"></select>
+      </label>
+      <button class="btn big" id="join-btn">게임 참여하기</button>
+      <p class="muted" id="join-msg" style="margin-top:8px"></p>
+    </div>
+
+    <div id="join-claim" style="display:none">
+      <p><span class="badge amber">이미 시작된 게임</span></p>
+      <p>아래에서 <b>내 이름</b>을 골라 이어서 할 수 있어요.</p>
+      <label class="field"><span>내 이름 고르기</span>
+        <select id="claim-select"></select>
+      </label>
+      <button class="btn big" id="claim-btn">이어서 하기</button>
+      <p class="muted" id="claim-msg" style="margin-top:8px"></p>
+    </div>
+  </div>
+
+  <!-- 교사 -->
+  <div class="card">
+    <h2>🧑‍🏫 선생님 — 게임 열기</h2>
+    <p class="muted">방을 만들면 QR코드와 접속 주소가 나와요. 화면을 프로젝터에 띄워 주세요.</p>
+    <a class="btn ghost big" href="teacher.html">교사 화면으로 가기</a>
+  </div>
+
+  <!-- 게임 방법 -->
+  <h2 style="margin-top:28px">📖 게임 방법</h2>
+  <p class="muted">처음이라면 위에서부터 차례대로 읽어 보세요. 5분이면 충분해요.</p>
+
+  <details class="tut" open>
+    <summary><span class="step-no">?</span> 이 게임은 어떤 게임인가요?</summary>
+    <div class="body">
+      <p>우리는 폭풍이 몰아치는 <b>항구 도시의 상인들</b>이에요. 매달(라운드) 폭풍이 도시를 덮치는데,
+      모두가 자원을 모아 방파제를 쌓아야 도시가 버틸 수 있어요.</p>
+      <p>그런데 문제가 하나 있어요. 방파제에 <b>내지 않고 내 창고에 남긴 자원은 전부 내 점수</b>가 돼요.</p>
+      <p>그래서 이 게임에는 두 가지 마음이 늘 싸워요.</p>
+      <p>🌊 <b>"내가 안 내면 도시가 무너질지도 몰라."</b> — 도시가 무너지면 <b>모둠 전체가 패배</b>해요.<br>
+      📦 <b>"남들이 내겠지. 나는 좀 챙겨야지."</b> — 도시가 살아남으면 <b>가장 부유한 한 명만 승리</b>해요.</p>
+      <p>너무 아끼면 다 같이 망하고, 너무 다 내면 우승은 남의 것. 그 사이 어딘가에서 매 라운드 고민하는 게임이에요.</p>
+    </div>
+  </details>
+
+  <details class="tut">
+    <summary><span class="step-no">1</span> 한 라운드는 이렇게 흘러가요</summary>
+    <div class="body">
+      <p><b>① 폭풍 예보</b> — 이번 달 폭풍의 세기가 <b>일부만</b> 공개돼요.
+      예를 들어 "확실한 세기 22 + 숨겨진 세기 8~16 사이"처럼요. 정확한 세기는 아무도 몰라요.</p>
+      <p><b>② 협상</b> — 모둠끼리 얼굴 보고 이야기해요. "나 7개 낼게", "다 같이 6개씩 내자" 같은 약속을 할 수 있어요.
+      하지만 약속은 <b>지키지 않아도 돼요</b>. 믿을지 말지는 각자의 판단!</p>
+      <p><b>③ 비밀 기여</b> — 각자 자기 기기에서 <b>몰래</b> 몇 개를 낼지 정하고 제출해요.
+      누가 몇 개 냈는지는 아무도 볼 수 없어요. 모둠의 <b>합계만</b> 공개돼요.</p>
+      <p><b>④ 판정</b> — 숨겨진 폭풍 세기가 공개되고, 모둠이 낸 합계와 비교해요.</p>
+      <p style="padding-left:14px">🛡 합계 ≥ 폭풍 → 도시가 버텨요! (남는 자원은 파도에 쓸려가요. 너무 많이 내도 아까워요)<br>
+      💥 합계 &lt; 폭풍 → 도시가 <b>피해 1</b>을 입어요. 많이 모자라면(폭풍의 3/4도 못 막으면) <b>피해 2</b>!</p>
+      <p><b>⑤ 정산</b> — 내지 않고 남긴 자원이 내 점수로 쌓여요. 그리고 그 라운드 <b>가장 많이 낸 사람</b>은
+      이름이 공개되고 <b>명예 토큰(+2점)</b>을 받아요. 공개되는 건 칭찬뿐 — 적게 낸 사람은 끝까지 비밀이에요.</p>
+    </div>
+  </details>
+
+  <details class="tut">
+    <summary><span class="step-no">2</span> 승리와 패배</summary>
+    <div class="body">
+      <table>
+        <tr><th>상황</th><th>결과</th></tr>
+        <tr><td>도시 피해가 <b>3</b>이 됨</td><td>도시 함락 — 그 모둠은 <b>전원 패배</b> 😱</td></tr>
+        <tr><td>마지막 라운드까지 도시가 버팀</td><td>모둠에서 <b>점수가 가장 높은 사람이 우승</b> 🏆</td></tr>
+      </table>
+      <p style="margin-top:10px">점수 = 매 라운드 남긴 자원 + 명예 토큰(개당 2점). 내 점수는 게임이 끝날 때까지 나만 볼 수 있어요.</p>
+      <p class="muted">여러 모둠이 동시에 하면 모든 모둠에 <b>같은 폭풍</b>이 와요. 어느 도시가 살아남는지 비교해 보세요!</p>
+    </div>
+  </details>
+
+  <details class="tut">
+    <summary><span class="step-no">3</span> 예시로 보는 한 라운드</summary>
+    <div class="body">
+      <p>5명 모둠, 1인당 자원 10개(모둠 전체 50개)라고 해 봐요.</p>
+      <p>① 폭풍 예보: <b>확실한 세기 21 + 숨겨진 세기 9~17</b> → 최악이면 38까지 갈 수 있어요.<br>
+      ② 협상: "안전하게 8개씩 내자!"고 약속했어요.<br>
+      ③ 비밀 기여: 넷은 8개를 냈는데, 한 명이 몰래 3개만 냈어요. 합계 <b>35</b>.<br>
+      ④ 판정: 숨겨진 세기는 12 → 폭풍 <b>33</b>. 35 ≥ 33, 도시가 버텼어요! (2는 파도에 쓸려감)<br>
+      ⑤ 정산: 3개만 낸 친구는 이번 라운드에만 <b>7점</b>을 챙겼어요. 하지만 숨겨진 세기가 15였다면…? 💥</p>
+      <p>이게 이 게임의 핵심이에요. <b>덜 내면 이득이지만, 모두가 그렇게 생각하면 도시가 가라앉아요.</b></p>
+    </div>
+  </details>
+
+  <details class="tut">
+    <summary><span class="step-no">4</span> 튕겼을 때 / 다시 접속하기</summary>
+    <div class="body">
+      <p>걱정 마세요. 점수와 진행 상황은 모두 선생님 컴퓨터(서버)에 저장돼 있어요.</p>
+      <p><b>같은 기기</b>라면: 이 페이지를 다시 열면 <b>"하던 게임으로 돌아가기"</b> 버튼이 나와요. 누르면 끝.</p>
+      <p><b>다른 기기</b>거나 버튼이 없다면: 방 코드를 다시 입력하고, 목록에서 <b>내 이름을 골라 "이어서 하기"</b>를 누르세요.</p>
+      <p class="muted">친구 이름으로 들어가면 친구가 튕겨요. 꼭 자기 이름만 고르기!</p>
+    </div>
+  </details>
+
+  <details class="tut">
+    <summary><span class="step-no">5</span> 선생님을 위한 안내</summary>
+    <div class="body">
+      <p><b>준비</b>: 교사 화면에서 방을 만들고(라운드 수·모둠 수 설정) QR코드를 프로젝터에 띄우면, 학생들이 태블릿·스마트폰으로 접속해요. 모두 <b>같은 와이파이</b>에 있어야 해요.</p>
+      <p><b>진행</b>: 단계 전환은 모두 선생님의 <b>"다음 단계"</b> 버튼으로 이뤄져요. 협상 시간에는 화면에 타이머가 돌아가요.
+      교사 화면은 개인 점수·개인 기여량을 보여 주지 않아서 <b>프로젝터에 띄워도 안전</b>해요. (개인 정보는 게임이 끝난 뒤 순위에서만 공개)</p>
+      <p><b>수업 연결</b>: 이 게임은 '문턱 공공재 게임'의 체험판이에요. 끝나고 이런 질문으로 토론해 보세요.</p>
+      <p style="padding-left:14px">· 왜 세금은 자발적 기부가 아니라 강제일까?<br>
+      · 기여가 익명이 아니었다면 우리 모둠은 어떻게 달라졌을까?<br>
+      · 도시가 무너진 모둠은 무엇이 부족했을까 — 자원일까, 신뢰일까?<br>
+      · 두 번째 판에서 우리 모둠의 작전은 어떻게 바뀌었나?</p>
+      <p><b>추천</b>: 같은 모둠으로 <b>두 판 연속</b> 진행해 보세요(게임 종료 후 "한 판 더" 버튼). 첫 판의 경험이 두 번째 판의 전략을 바꾸는 과정 자체가 최고의 토론거리예요.</p>
+      <p class="muted">권장: 모둠당 4~6명 · 6라운드 · 설명 10분 + 플레이 25분 + 토론 10분.</p>
+    </div>
+  </details>
+
+</div>
+
+<div id="net-banner">연결이 불안정해요. 다시 연결하는 중…</div>
+
+<script>
+const $ = s => document.querySelector(s);
+let peeked = null;
+
+function getSession() {
+  try { return JSON.parse(localStorage.getItem('bp_student') || 'null'); } catch { return null; }
+}
+
+// 저장된 세션이 있으면 "돌아가기" 제안
+(async function checkResume() {
+  const s = getSession();
+  if (!s || !s.code) return;
+  try {
+    const r = await fetch(`/api/rooms/${s.code}/rejoin`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ playerId: s.playerId, token: s.token }),
+    });
+    if (r.ok) {
+      $('#resume-box').style.display = 'block';
+      $('#resume-btn').onclick = () => location.href = 'student.html';
+    } else {
+      localStorage.removeItem('bp_student');
+    }
+  } catch {}
+})();
+
+// URL에 ?room= 이 있으면 자동 입력
+const urlRoom = new URLSearchParams(location.search).get('room');
+if (urlRoom) {
+  $('#code-input').value = urlRoom.toUpperCase().slice(0, 4);
+  peek();
+}
+
+$('#code-btn').onclick = peek;
+$('#code-input').addEventListener('keydown', e => { if (e.key === 'Enter') peek(); });
+
+async function peek() {
+  const code = $('#code-input').value.trim().toUpperCase();
+  $('#code-msg').textContent = '';
+  if (code.length !== 4) { $('#code-msg').textContent = '방 코드는 4글자예요.'; return; }
+  let r;
+  try { r = await fetch(`/api/rooms/${code}/peek`); } catch { $('#code-msg').textContent = '서버에 연결할 수 없어요. 와이파이를 확인해 주세요.'; return; }
+  if (!r.ok) { $('#code-msg').textContent = '그 코드의 방이 없어요. 다시 확인해 주세요.'; return; }
+  peeked = await r.json();
+  $('#join-step1').style.display = 'none';
+  if (peeked.state === 'lobby') {
+    showStep2();
+  } else {
+    showClaim();
+  }
+}
+
+function showStep2() {
+  $('#join-step2').style.display = 'block';
+  $('#join-claim').style.display = 'none';
+  $('#room-label').textContent = `방 ${peeked.code} · 모둠 ${peeked.groupCount}개`;
+  const sel = $('#group-select');
+  sel.innerHTML = '';
+  for (let g = 0; g < peeked.groupCount; g++) {
+    const n = peeked.names.filter(x => x.group === g).length;
+    const o = document.createElement('option');
+    o.value = g; o.textContent = `${g + 1}모둠 (현재 ${n}명)`;
+    sel.appendChild(o);
+  }
+  $('#name-input').focus();
+}
+
+function showClaim() {
+  $('#join-step2').style.display = 'none';
+  $('#join-claim').style.display = 'block';
+  const sel = $('#claim-select');
+  sel.innerHTML = '';
+  const names = peeked.names.slice().sort((a, b) => a.group - b.group || a.name.localeCompare(b.name, 'ko'));
+  if (!names.length) { $('#claim-msg').textContent = '이 방에는 참가자가 없어요.'; return; }
+  for (const x of names) {
+    const o = document.createElement('option');
+    o.value = x.name;
+    o.textContent = `${x.group + 1}모둠 · ${x.name}${x.online ? ' (접속 중)' : ''}`;
+    sel.appendChild(o);
+  }
+}
+
+$('#join-btn').onclick = async () => {
+  const name = $('#name-input').value.trim();
+  if (!name) { $('#join-msg').textContent = '이름을 입력해 주세요.'; return; }
+  const group = parseInt($('#group-select').value, 10) || 0;
+  const r = await fetch(`/api/rooms/${peeked.code}/join`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, group }),
+  });
+  const d = await r.json();
+  if (!r.ok) {
+    $('#join-msg').textContent = d.message || '참여할 수 없어요.';
+    if (d.error === 'name-taken' || d.error === 'started') {
+      const pr = await fetch(`/api/rooms/${peeked.code}/peek`); peeked = await pr.json();
+      showClaim();
+      if (d.error === 'name-taken') {
+        for (const o of $('#claim-select').options) if (o.value === name) o.selected = true;
+        $('#claim-msg').textContent = '본인이 맞다면 그대로 "이어서 하기"를 누르세요.';
+      }
+    }
+    return;
+  }
+  localStorage.setItem('bp_student', JSON.stringify({ code: peeked.code, playerId: d.playerId, token: d.token, name }));
+  location.href = 'student.html';
+};
+
+$('#claim-btn').onclick = async () => {
+  const name = $('#claim-select').value;
+  if (!name) return;
+  const r = await fetch(`/api/rooms/${peeked.code}/claim`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name }),
+  });
+  const d = await r.json();
+  if (!r.ok) { $('#claim-msg').textContent = d.message || '이어서 할 수 없어요.'; return; }
+  localStorage.setItem('bp_student', JSON.stringify({ code: peeked.code, playerId: d.playerId, token: d.token, name }));
+  location.href = 'student.html';
+};
+</script>
+</body>
+</html>

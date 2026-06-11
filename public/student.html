@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>방파제 — 학생 화면</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="masthead">
+  <div class="inner">
+    <h1>⚓ 방파제</h1>
+    <p class="tag" id="head-sub">접속 중…</p>
+  </div>
+</div>
+
+<div class="wrap narrow" id="app"><div class="card center"><p>접속 중…</p></div></div>
+<div id="net-banner">연결이 불안정해요. 다시 연결하는 중…</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const app = $('#app');
+let session = null;
+let S = null;
+let lastJSON = '';
+let timeOffset = 0;
+let myAmount = null;          // 기여 선택값 (제출 전 임시 포함)
+let amountKey = '';           // 라운드가 바뀌면 선택값 초기화
+let submitting = false;
+
+try { session = JSON.parse(localStorage.getItem('bp_student') || 'null'); } catch {}
+if (!session || !session.code) location.href = '/';
+
+const PHASES = [
+  { key: 'storm', label: '폭풍 예보' },
+  { key: 'negotiate', label: '협상' },
+  { key: 'contribute', label: '비밀 기여' },
+  { key: 'resolve', label: '판정' },
+];
+
+setInterval(poll, 1500);
+setInterval(tickTimer, 250);
+poll();
+
+async function poll() {
+  let r;
+  try {
+    r = await fetch(`/api/rooms/${session.code}/state?playerId=${session.playerId}&token=${session.token}`);
+  } catch { $('#net-banner').style.display = 'block'; return; }
+  $('#net-banner').style.display = 'none';
+  if (r.status === 401 || r.status === 404) {
+    app.innerHTML = `<div class="card center">
+      <h2>연결이 만료됐어요</h2>
+      <p>다른 기기에서 접속했거나, 게임 방이 닫혔어요.</p>
+      <a class="btn big" href="/">처음 화면에서 다시 들어가기</a></div>`;
+    return;
+  }
+  if (!r.ok) return;
+  const text = await r.text();
+  if (text === lastJSON) return;
+  lastJSON = text;
+  S = JSON.parse(text);
+  timeOffset = S.serverNow - Date.now();
+  render();
+}
+
+function esc(s) { return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function damagePips(d) {
+  return `<span class="damage">${[0,1,2].map(i=>`<span class="pip ${i<d?'hit':''}"></span>`).join('')}</span>`;
+}
+function phaseBar() {
+  return `<div class="phases">${PHASES.map(p => {
+    const idx = PHASES.findIndex(x => x.key === S.phase);
+    const me = PHASES.findIndex(x => x.key === p.key);
+    return `<div class="phase-pill ${p.key === S.phase ? 'on' : me < idx ? 'done' : ''}">${p.label}</div>`;
+  }).join('')}</div>`;
+}
+function topBar() {
+  return `<div class="card tight">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:15px">
+      <b>${esc(S.me.name)}</b> <span class="badge">${S.me.group + 1}모둠</span>
+      <span style="margin-left:auto">${S.round + 1}/${S.settings.rounds}R</span>
+      ${damagePips(S.group.damage)}
+    </div>
+    <div style="display:flex;gap:10px;margin-top:6px;font-size:15px;align-items:baseline">
+      <span class="muted">내 점수(나만 보여요)</span>
+      <b class="display" style="font-size:22px">${S.me.points}점</b>
+      ${S.me.honor ? `<span class="badge amber">🏅×${S.me.honor}</span>` : ''}
+    </div>
+  </div>`;
+}
+function stormBig() {
+  const c = S.stormCard;
+  if (!c) return '';
+  if (c.storm != null) {
+    return `<p class="center">이번 폭풍의 진짜 세기</p><p class="num huge center">${c.storm}</p>
+      <p class="center muted">예보 ${c.pub} + 숨겨져 있던 ${c.hidden}</p>`;
+  }
+  return `<div class="center">
+    <p style="margin-bottom:2px">확실한 세기</p><p class="num">${c.pub}</p>
+    <p style="margin-bottom:2px">+ 숨겨진 세기</p><p class="num" style="color:var(--storm)">${c.lo} ~ ${c.hi}</p>
+    <p class="banner" style="background:var(--storm-pale)">폭풍은 <b>${c.min} ~ ${c.max}</b> 사이로 올 거예요</p>
+  </div>`;
+}
+
+function render() {
+  if (S.state === 'lobby') return renderLobby();
+  if (S.state === 'finished') return renderFinished();
+  if (S.me.out || S.group.fallen) {
+    if (S.phase === 'resolve' && S.result && S.result.fellNow) return renderResolve();
+    return renderFallen();
+  }
+  if (S.phase === 'storm') return renderStorm();
+  if (S.phase === 'negotiate') return renderNegotiate();
+  if (S.phase === 'contribute') return renderContribute();
+  if (S.phase === 'resolve') return renderResolve();
+}
+
+function renderLobby() {
+  $('#head-sub').textContent = '곧 게임이 시작돼요';
+  app.innerHTML = `
+    <div class="card center">
+      <h2>${S.gamesPlayed ? '🔁 한 판 더!' : '⛵ 입장 완료!'}</h2>
+      <p><b>${esc(S.me.name)}</b> · ${S.me.group + 1}모둠</p>
+      <p class="muted">선생님이 시작할 때까지 기다려요.</p>
+    </div>
+    <div class="card">
+      <h3>우리 모둠 (${S.group.size}명)</h3>
+      ${S.group.members.map(m => `<div class="member"><span class="dot ${m.online ? 'on' : ''}"></span>${esc(m.name)}</div>`).join('')}
+    </div>
+    <div class="card">
+      <h3>📌 잊지 마세요</h3>
+      <p style="font-size:15px">매 라운드 자원 <b>${S.settings.cubes}개</b>를 받아요.<br>
+      🌊 방파제에 낸 것 → 도시를 지켜요<br>
+      📦 남긴 것 → 내 점수가 돼요<br>
+      도시가 무너지면(피해 3) 모두 패배! 살아남으면 점수 1등이 우승!</p>
+    </div>`;
+}
+
+function renderStorm() {
+  $('#head-sub').textContent = `${S.round + 1}라운드 — 폭풍 예보`;
+  app.innerHTML = `${topBar()}
+    <div class="card">${phaseBar()}
+      <h2 class="center">🌩 폭풍 예보</h2>
+      ${stormBig()}
+      <p class="center muted">곧 협상이 시작돼요. 몇 개씩 내야 막을 수 있을지 생각해 보세요.</p>
+    </div>`;
+}
+
+function renderNegotiate() {
+  $('#head-sub').textContent = `${S.round + 1}라운드 — 협상`;
+  app.innerHTML = `${topBar()}
+    <div class="card">${phaseBar()}
+      <h2 class="center">🗣 협상 시간</h2>
+      ${S.phaseEndsAt ? '<div class="timer" id="nego-timer">--:--</div>' : ''}
+      ${stormBig()}
+      <p class="center">모둠 친구들과 <b>얼굴 보고</b> 이야기하세요.<br>
+      "몇 개씩 낼까?" — 약속은 자유, 지키는 것도 자유.</p>
+    </div>`;
+}
+
+function tickTimer() {
+  const el = $('#nego-timer');
+  if (!el || !S || !S.phaseEndsAt) return;
+  const left = Math.max(0, S.phaseEndsAt - (Date.now() + timeOffset));
+  const s = Math.ceil(left / 1000);
+  el.textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+  el.classList.toggle('low', s <= 10);
+}
+
+function renderContribute() {
+  $('#head-sub').textContent = `${S.round + 1}라운드 — 비밀 기여`;
+  const key = `${S.gamesPlayed}-${S.round}`;
+  if (amountKey !== key) {
+    amountKey = key;
+    myAmount = Number.isInteger(S.me.currentContribution) ? S.me.currentContribution : null;
+  }
+  const n = S.settings.cubes;
+  const chosen = myAmount === null ? '?' : myAmount;
+  const kept = myAmount === null ? '?' : n - myAmount;
+  app.innerHTML = `${topBar()}
+    <div class="card">${phaseBar()}
+      <h2 class="center">🤫 몰래 정하세요</h2>
+      <p class="center muted">상자를 눌러 방파제에 낼 개수를 정해요. 아무도 볼 수 없어요.</p>
+      <div class="cubes" id="cubes">
+        ${Array.from({ length: n }, (_, i) =>
+          `<button class="cube ${myAmount !== null && i < myAmount ? 'give' : ''}" data-i="${i}" aria-label="${i + 1}개 내기"></button>`).join('')}
+      </div>
+      <div class="row center" style="align-items:center">
+        <button class="btn small ghost" id="zero-btn">0개 내기</button>
+        <div><p class="muted" style="margin:0;font-size:13px">🌊 방파제에</p><p class="num" style="font-size:30px;color:var(--teal-dark)">${chosen}개</p></div>
+        <div><p class="muted" style="margin:0;font-size:13px">📦 내 창고에</p><p class="num" style="font-size:30px;color:var(--amber-dark)">${kept}개</p></div>
+      </div>
+      <button class="btn big" id="submit-btn" ${myAmount === null || submitting ? 'disabled' : ''}>
+        ${S.me.submitted ? '제출함 — 다시 제출해서 바꾸기' : '이대로 제출하기'}</button>
+      ${S.me.submitted ? `<p class="center" style="color:var(--teal-dark);margin-top:8px"><b>✓ 제출 완료</b> <span class="muted">(판정 전까지는 바꿀 수 있어요 · 현재 ${S.me.currentContribution}개)</span></p>` : ''}
+      <p class="center muted" style="margin-top:8px">우리 모둠 제출: ${S.group.submittedCount}/${S.group.size}명</p>
+    </div>`;
+  $('#cubes').addEventListener('click', e => {
+    const b = e.target.closest('.cube');
+    if (!b) return;
+    const i = parseInt(b.dataset.i, 10);
+    myAmount = (myAmount === i + 1) ? i : i + 1; // 같은 칸 다시 누르면 한 칸 줄이기
+    render();
+  });
+  $('#zero-btn').onclick = () => { myAmount = 0; render(); };
+  $('#submit-btn').onclick = submitContribution;
+}
+
+async function submitContribution() {
+  if (myAmount === null || submitting) return;
+  submitting = true; render();
+  try {
+    const r = await fetch(`/api/rooms/${session.code}/contribute`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ playerId: session.playerId, token: session.token, amount: myAmount }),
+    });
+    if (r.ok) { S.me.submitted = true; S.me.currentContribution = myAmount; lastJSON = ''; }
+  } finally { submitting = false; render(); poll(); }
+}
+
+function renderResolve() {
+  $('#head-sub').textContent = `${S.round + 1}라운드 — 판정`;
+  const r = S.result;
+  if (!r || r.skipped) return renderFallen();
+  const pct = Math.min(100, Math.round(r.total / Math.max(r.storm, r.total, 1) * 100));
+  const markPct = Math.min(98, Math.round(r.storm / Math.max(r.storm, r.total, 1) * 100));
+  app.innerHTML = `${topBar()}
+    <div class="card">${phaseBar()}
+      <h2 class="center">⚖ 결과</h2>
+      <p class="center">숨겨진 세기는 <b class="display" style="font-size:24px">${r.hidden}</b> — 폭풍 <b class="display" style="font-size:24px">${r.storm}</b>!</p>
+      <div class="gauge">
+        <div class="bar"><div class="fill ${r.ok ? '' : 'fail'}" style="width:${pct}%"></div><div class="mark" style="left:${markPct}%"></div></div>
+        <div class="nums"><span>우리가 낸 합계 <b>${r.total}</b></span><span>폭풍 <b>${r.storm}</b></span></div>
+      </div>
+      ${r.ok
+        ? `<div class="banner ok">🛡 막아냈다! ${r.surplus > 0 ? `${r.surplus}개는 파도에 쓸려갔어요.` : '한 개도 안 남기고 딱 막았어요!'}</div>`
+        : `<div class="banner bad">💥 못 막았다! 도시 피해 +${r.damage} ${r.fellNow ? '— <b>도시가 무너졌어요…</b>' : ''}</div>`}
+      ${r.topNames.length ? `<div class="banner honor">🏅 이번 라운드 최다 기여: <b>${r.topNames.map(esc).join(', ')}</b> (+2점)${S.myHonor ? ' — 바로 나!' : ''}</div>` : ''}
+      <div class="card tight" style="background:var(--paper);box-shadow:none">
+        <p style="margin:0;font-size:15px">나는 🌊 <b>${S.myContribution}개</b>를 내고 📦 <b>${S.myKept}개</b>를 남겼어요
+        → <b>+${S.myKept + (S.myHonor ? 2 : 0)}점</b> <span class="muted">(아무에게도 안 보여요)</span></p>
+      </div>
+      ${r.fellNow ? '<p class="center muted">도시가 가라앉으면 점수는 의미가 없어요…</p>' : '<p class="center muted">선생님이 다음 라운드를 시작할 때까지 기다려요.</p>'}
+    </div>`;
+}
+
+function renderFallen() {
+  $('#head-sub').textContent = '도시 함락…';
+  app.innerHTML = `${topBar()}
+    <div class="card center">
+      <h2>🌊 우리 도시는 가라앉았어요</h2>
+      <p>피해가 3이 되어 <b>모둠 전원 패배</b>예요.</p>
+      <p class="muted">다른 모둠은 살아남을 수 있을까요? 게임이 끝날 때까지 조용히 응원해요.<br>
+      그리고 생각해 보세요 — 우리에게 부족했던 건 자원이었을까, 신뢰였을까?</p>
+    </div>`;
+}
+
+function renderFinished() {
+  $('#head-sub').textContent = '게임 종료';
+  const fallen = S.group.fallen;
+  const mine = (S.ranking || []).find(p => p.name === S.me.name);
+  app.innerHTML = `${topBar()}
+    <div class="card center">
+      <h2>${fallen ? '💥 우리 도시는 무너졌어요' : '🏁 폭풍의 계절이 끝났어요!'}</h2>
+      ${fallen
+        ? '<p>도시가 함락되어 모둠 전원이 패배했어요.</p>'
+        : (mine && mine.rank === 1 ? '<p class="num">🏆 우승!</p>' : `<p>내 순위: <b class="display" style="font-size:24px">${mine ? mine.rank : '-'}위</b></p>`)}
+    </div>
+    <div class="card">
+      <h3>우리 모둠 최종 점수</h3>
+      <div class="podium">
+        ${(S.ranking || []).map(p => `
+          <div class="rank-row ${!fallen && p.rank === 1 ? 'first' : ''}">
+            <span class="r">${!fallen && p.rank === 1 ? '🏆' : (fallen ? '·' : p.rank)}</span>
+            <span>${esc(p.name)}${p.name === S.me.name ? ' (나)' : ''}${p.honor ? ` <span class="badge amber">🏅×${p.honor}</span>` : ''}</span>
+            <span class="pts">${p.points}점</span>
+          </div>`).join('')}
+      </div>
+      <p class="muted" style="margin-top:10px">선생님이 "한 판 더"를 누르면 자동으로 다음 판이 시작돼요. 이 화면을 닫지 마세요!</p>
+    </div>`;
+}
+</script>
+</body>
+</html>

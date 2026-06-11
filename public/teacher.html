@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>방파제 — 교사 화면</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script src="qrcode.js"></script>
+</head>
+<body>
+
+<div class="masthead">
+  <div class="inner">
+    <h1>⚓ 방파제 <span style="font-size:18px;color:#a8cdc6">교사 화면</span></h1>
+    <p class="tag" id="head-sub">방을 만들어 학생들을 초대하세요</p>
+  </div>
+</div>
+
+<div class="wrap" id="app"></div>
+<div id="net-banner">서버와 연결이 끊겼어요. 다시 연결하는 중…</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const app = $('#app');
+let session = null;       // {code, token}
+let S = null;             // 최신 상태
+let lastJSON = '';
+let joinURL = '';
+let timeOffset = 0;       // serverNow - Date.now()
+let confirmEnd = false;
+
+function loadSession() {
+  try { session = JSON.parse(localStorage.getItem('bp_teacher') || 'null'); } catch { session = null; }
+}
+loadSession();
+
+const PHASES = [
+  { key: 'storm', label: '폭풍 예보' },
+  { key: 'negotiate', label: '협상' },
+  { key: 'contribute', label: '비밀 기여' },
+  { key: 'resolve', label: '판정' },
+];
+const NEXT_LABEL = {
+  storm: '🗣 협상 시작',
+  negotiate: '🤫 비밀 기여 시작',
+  contribute: '⚖ 판정하기',
+};
+
+init();
+
+async function init() {
+  if (session) {
+    const ok = await poll(true);
+    if (ok) { startPolling(); return; }
+    localStorage.removeItem('bp_teacher');
+    session = null;
+  }
+  renderCreate();
+}
+
+function renderCreate() {
+  $('#head-sub').textContent = '방을 만들어 학생들을 초대하세요';
+  app.innerHTML = `
+    <div class="card">
+      <h2>새 게임 방 만들기</h2>
+      <div class="row">
+        <label class="field"><span>라운드 수</span>
+          <select id="f-rounds">${[4,5,6,7,8].map(n=>`<option ${n===6?'selected':''}>${n}</option>`).join('')}</select>
+        </label>
+        <label class="field"><span>모둠 수</span>
+          <select id="f-groups">${[1,2,3,4,5,6,7,8].map(n=>`<option ${n===4?'selected':''}>${n}</option>`).join('')}</select>
+        </label>
+      </div>
+      <div class="row">
+        <label class="field"><span>1인당 자원(라운드마다)</span>
+          <select id="f-cubes">${[8,10,12].map(n=>`<option ${n===10?'selected':''}>${n}</option>`).join('')}</select>
+        </label>
+        <label class="field"><span>협상 시간</span>
+          <select id="f-nego">
+            <option value="60">60초</option>
+            <option value="90" selected>90초</option>
+            <option value="120">120초</option>
+            <option value="180">180초</option>
+          </select>
+        </label>
+      </div>
+      <button class="btn big" id="create-btn">방 만들기</button>
+      <p class="muted" style="margin-top:10px">권장: 모둠당 4~6명. 학생들은 모두 같은 와이파이에 있어야 해요.
+      게임 규칙이 궁금하면 <a href="/">첫 화면의 게임 방법</a>을 보세요.</p>
+    </div>`;
+  $('#create-btn').onclick = async () => {
+    const settings = {
+      rounds: $('#f-rounds').value, groupCount: $('#f-groups').value,
+      cubes: $('#f-cubes').value, negotiationSec: $('#f-nego').value,
+    };
+    const r = await fetch('/api/rooms', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ settings }),
+    });
+    const d = await r.json();
+    session = { code: d.code, token: d.teacherToken };
+    localStorage.setItem('bp_teacher', JSON.stringify(session));
+    await resolveJoinURL();
+    await poll(true);
+    startPolling();
+  };
+}
+
+async function resolveJoinURL() {
+  let origin = location.origin;
+  if (['localhost', '127.0.0.1'].includes(location.hostname)) {
+    try {
+      const d = await (await fetch('/api/info')).json();
+      if (d.urls && d.urls.length) origin = d.urls[0];
+    } catch {}
+  }
+  joinURL = `${origin}/?room=${session.code}`;
+}
+
+let pollTimer = null;
+function startPolling() {
+  if (!joinURL) resolveJoinURL().then(() => { lastJSON = ''; render(); });
+  if (pollTimer) clearInterval(pollTimer);
+  pollTimer = setInterval(poll, 1500);
+  setInterval(tickTimer, 250);
+}
+
+async function poll(first) {
+  if (!session) return false;
+  let r;
+  try {
+    r = await fetch(`/api/rooms/${session.code}/state?role=teacher&token=${session.token}`);
+  } catch { $('#net-banner').style.display = 'block'; return false; }
+  $('#net-banner').style.display = 'none';
+  if (!r.ok) { if (first) return false; return; }
+  const text = await r.text();
+  if (text === lastJSON) return true;
+  lastJSON = text;
+  S = JSON.parse(text);
+  timeOffset = S.serverNow - Date.now();
+  render();
+  return true;
+}
+
+function api(action, extra = {}) {
+  return fetch(`/api/rooms/${session.code}/teacher/${action}`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token: session.token, ...extra }),
+  }).then(() => poll());
+}
+
+function esc(s) { return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+function damagePips(d) {
+  return `<span class="damage">${[0,1,2].map(i=>`<span class="pip ${i<d?'hit':''}"></span>`).join('')}</span>`;
+}
+
+function joinPanel(open) {
+  return `
+  <details class="tut" ${open ? 'open' : ''}>
+    <summary>📲 학생 접속 안내 (QR · 주소)</summary>
+    <div class="body">
+      <div class="row" style="align-items:center">
+        <div style="min-width:220px">
+          <div id="qr-box"></div>
+        </div>
+        <div>
+          <p class="muted" style="margin-bottom:2px">접속 주소</p>
+          <p style="font-size:20px;word-break:break-all"><b>${esc(joinURL || '주소 확인 중…')}</b></p>
+          <p class="muted" style="margin-bottom:2px">방 코드</p>
+          <p class="num">${S.code}</p>
+          <p class="muted">QR을 찍거나, 주소로 들어가 코드를 입력하면 돼요. 튕긴 학생도 같은 방법으로 다시 들어올 수 있어요.</p>
+        </div>
+      </div>
+    </div>
+  </details>`;
+}
+
+function drawQR() {
+  const box = $('#qr-box');
+  if (!box || !joinURL || typeof qrcode === 'undefined') return;
+  try {
+    const q = qrcode(0, 'M');
+    q.addData(joinURL);
+    q.make();
+    box.innerHTML = q.createSvgTag({ cellSize: 6, margin: 2, scalable: true });
+  } catch { box.innerHTML = '<p class="muted">QR 생성 실패 — 주소를 직접 알려 주세요.</p>'; }
+}
+
+function render() {
+  if (!S) return;
+  if (S.state === 'lobby') renderLobby();
+  else if (S.state === 'playing') renderPlaying();
+  else renderFinished();
+  drawQR();
+}
+
+/* ---------------- 로비 ---------------- */
+function renderLobby() {
+  $('#head-sub').textContent = `방 코드 ${S.code} — 학생들이 들어오면 시작하세요`;
+  const total = S.groups.reduce((a, g) => a + g.members.length, 0);
+  app.innerHTML = `
+    ${joinPanel(true)}
+    <div class="card">
+      <h2>참가자 <span class="badge teal">${total}명</span> ${S.gamesPlayed ? `<span class="badge amber">${S.gamesPlayed + 1}번째 판</span>` : ''}</h2>
+      <div class="groups-grid">
+        ${S.groups.map((g, i) => `
+          <div class="group-card">
+            <h3>${i + 1}모둠 <span class="badge">${g.members.length}명</span></h3>
+            ${g.members.map(m => `
+              <div class="member">
+                <span class="dot ${m.online ? 'on' : ''}"></span> ${esc(m.name)}
+                <span style="margin-left:auto;display:flex;gap:4px">
+                  <select onchange="moveP('${m.id}', this.value)" style="width:auto;padding:2px 6px;font-size:13px;border-radius:8px">
+                    ${S.groups.map((_, gi) => `<option value="${gi}" ${gi === i ? 'selected' : ''}>${gi + 1}모둠</option>`).join('')}
+                  </select>
+                  <button class="btn small warn" onclick="kickP('${m.id}','${esc(m.name)}')">✕</button>
+                </span>
+              </div>`).join('') || '<p class="muted">아직 없음</p>'}
+          </div>`).join('')}
+      </div>
+      <div class="spacer"></div>
+      <button class="btn big" id="start-btn" ${total === 0 ? 'disabled' : ''}>🌊 게임 시작 (${S.settings.rounds}라운드)</button>
+      <p class="muted center" style="margin-top:8px">시작하면 모둠 이동은 할 수 없어요. 인원 0명인 모둠은 자동으로 빠져요.</p>
+    </div>`;
+  $('#start-btn').onclick = () => api('start');
+}
+window.moveP = (id, g) => api('setGroup', { playerId: id, group: parseInt(g, 10) });
+window.kickP = (id, name) => { if (confirm(`${name} 학생을 내보낼까요?`)) api('kick', { playerId: id }); };
+
+/* ---------------- 게임 진행 ---------------- */
+function phaseBar() {
+  return `<div class="phases">${PHASES.map(p => {
+    const idx = PHASES.findIndex(x => x.key === S.phase);
+    const me = PHASES.findIndex(x => x.key === p.key);
+    return `<div class="phase-pill ${p.key === S.phase ? 'on' : me < idx ? 'done' : ''}">${p.label}</div>`;
+  }).join('')}</div>`;
+}
+
+function stormCardHTML(g) {
+  if (!g.stormCard) return '';
+  const c = g.stormCard;
+  if (c.storm != null) {
+    return `<p>폭풍 세기: <b class="num" style="font-size:26px">${c.storm}</b> <span class="muted">(예보 ${c.pub} + 숨김 ${c.hidden})</span></p>`;
+  }
+  return `<p>확실한 세기 <b style="font-size:22px" class="display">${c.pub}</b>
+    + 숨겨진 세기 <b style="font-size:22px" class="display">${c.lo}~${c.hi}</b><br>
+    <span class="muted">→ 폭풍은 ${c.min} ~ ${c.max} 사이</span></p>`;
+}
+
+function resultHTML(g) {
+  const r = g.result;
+  if (!r || r.skipped) return '<p class="muted">이미 무너진 도시예요.</p>';
+  const pct = Math.min(100, Math.round(r.total / Math.max(r.storm, r.total, 1) * 100));
+  const markPct = Math.min(98, Math.round(r.storm / Math.max(r.storm, r.total, 1) * 100));
+  return `
+    <div class="gauge">
+      <div class="bar">
+        <div class="fill ${r.ok ? '' : 'fail'}" style="width:${pct}%"></div>
+        <div class="mark" style="left:${markPct}%"></div>
+      </div>
+      <div class="nums"><span>모둠이 낸 합계 <b>${r.total}</b></span><span>폭풍 <b>${r.storm}</b></span></div>
+    </div>
+    ${r.ok
+      ? `<div class="banner ok">🛡 막아냈다! ${r.surplus > 0 ? `(${r.surplus}개는 파도에 쓸려감)` : '딱 맞게 막았어요!'}</div>`
+      : `<div class="banner bad">💥 못 막았다! 도시 피해 +${r.damage} ${r.fellNow ? '— <b>도시 함락!</b>' : ''}</div>`}
+    ${r.topNames.length ? `<div class="banner honor">🏅 최다 기여: <b>${r.topNames.map(esc).join(', ')}</b> (${r.topAmount}개 · 명예 +2점)</div>` : ''}
+  `;
+}
+
+function renderPlaying() {
+  $('#head-sub').textContent = `방 ${S.code} · ${S.round + 1}/${S.settings.rounds} 라운드`;
+  const activeGroups = S.groups.filter(g => g.size > 0);
+  const allSubmitted = activeGroups.filter(g => !g.fallen).every(g => g.submittedCount >= g.size);
+  const notSubmitted = activeGroups.filter(g => !g.fallen).reduce((a, g) => a + (g.size - g.submittedCount), 0);
+  const isLastRound = S.round >= S.settings.rounds - 1;
+  const aliveCount = activeGroups.filter(g => !g.fallen).length;
+
+  let phaseGuide = '';
+  if (S.phase === 'storm') phaseGuide = '폭풍 예보를 다 같이 확인한 뒤 협상을 시작하세요.';
+  if (S.phase === 'negotiate') phaseGuide = '모둠끼리 얼굴을 보고 작전을 짜는 시간이에요. 약속은 지켜도, 안 지켜도 됩니다.';
+  if (S.phase === 'contribute') phaseGuide = '각자 기기에서 몰래 제출하는 중… 제출 안 한 학생은 0개로 처리돼요.';
+  if (S.phase === 'resolve') phaseGuide = '결과를 함께 확인하세요.';
+
+  let nextBtn = '';
+  if (S.phase === 'resolve') {
+    nextBtn = `<button class="btn big storm" onclick="next()">${isLastRound || aliveCount === 0 ? '🏆 최종 결과 보기' : `▶ ${S.round + 2}라운드 시작`}</button>`;
+  } else if (S.phase === 'contribute') {
+    nextBtn = `<button class="btn big storm" onclick="next()">⚖ 판정하기${notSubmitted ? ` (미제출 ${notSubmitted}명)` : ''}</button>
+      ${allSubmitted ? '<p class="center" style="color:var(--teal-dark);margin-top:8px"><b>✓ 전원 제출 완료!</b></p>' : ''}`;
+  } else {
+    nextBtn = `<button class="btn big storm" onclick="next()">${NEXT_LABEL[S.phase]}</button>`;
+  }
+
+  app.innerHTML = `
+    <div class="card tight">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <span class="num" style="font-size:30px">${S.round + 1}<span style="font-size:17px;color:var(--ink-soft)">/${S.settings.rounds} 라운드</span></span>
+        <span style="margin-left:auto" class="muted">방 ${S.code}</span>
+      </div>
+      ${phaseBar()}
+      ${S.phase === 'negotiate' && S.phaseEndsAt ? `<div class="timer" id="nego-timer">--:--</div>` : ''}
+      <p class="center muted">${phaseGuide}</p>
+      ${nextBtn}
+    </div>
+
+    <div class="groups-grid">
+      ${S.groups.map((g, i) => {
+        if (g.size === 0) return '';
+        return `<div class="group-card ${g.fallen ? 'fallen' : ''}">
+          <h3>${i + 1}모둠 ${damagePips(g.damage)}</h3>
+          ${g.fallen ? `<p class="badge coral">💥 ${g.fallenRound + 1}라운드에 함락</p>` : ''}
+          ${!g.fallen && (S.phase === 'storm' || S.phase === 'negotiate') ? stormCardHTML(g) : ''}
+          ${!g.fallen && S.phase === 'contribute' ? `
+            <p style="font-size:15px">제출 <b>${g.submittedCount} / ${g.size}</b></p>
+            ${g.members.map(m => `<div class="member"><span class="dot ${m.online ? 'on' : ''}"></span>${esc(m.name)}${m.submitted ? '<span class="check">✓ 제출</span>' : ''}</div>`).join('')}
+          ` : ''}
+          ${S.phase === 'resolve' ? resultHTML(g) : ''}
+          ${S.phase !== 'contribute' && !g.fallen && S.phase !== 'resolve' ? `<p class="muted" style="font-size:13px">${g.members.filter(m=>m.online).length}/${g.size}명 접속 중</p>` : ''}
+        </div>`;
+      }).join('')}
+    </div>
+
+    ${joinPanel(false)}
+    <p class="center"><button class="btn small ghost" onclick="endGameNow()">게임 즉시 종료</button></p>
+  `;
+}
+window.next = () => api('next');
+window.endGameNow = () => { if (confirm('게임을 지금 끝내고 결과를 볼까요?')) api('endGame'); };
+
+function tickTimer() {
+  const el = $('#nego-timer');
+  if (!el || !S || !S.phaseEndsAt) return;
+  const left = Math.max(0, S.phaseEndsAt - (Date.now() + timeOffset));
+  const s = Math.ceil(left / 1000);
+  el.textContent = `${String(Math.floor(s / 60)).padStart(1, '0')}:${String(s % 60).padStart(2, '0')}`;
+  el.classList.toggle('low', s <= 10);
+}
+
+/* ---------------- 종료 ---------------- */
+function renderFinished() {
+  $('#head-sub').textContent = `방 ${S.code} · 게임 종료`;
+  const reasonText = S.finishedReason === 'allFallen'
+    ? '모든 도시가 폭풍에 가라앉았어요…' : '폭풍의 계절이 끝났습니다!';
+  app.innerHTML = `
+    <div class="card center">
+      <h2>🏁 ${reasonText}</h2>
+    </div>
+    <div class="groups-grid">
+      ${S.groups.map((g, i) => {
+        if (g.size === 0) return '';
+        const surv = !g.fallen;
+        return `<div class="group-card ${g.fallen ? 'fallen' : ''}">
+          <h3>${i + 1}모둠 ${surv ? '<span class="badge teal">생존 🛡</span>' : `<span class="badge coral">함락 💥</span>`}</h3>
+          ${surv ? `<div class="podium">${(g.ranking || []).map(p => `
+              <div class="rank-row ${p.rank === 1 ? 'first' : ''}">
+                <span class="r">${p.rank === 1 ? '🏆' : p.rank}</span>
+                <span>${esc(p.name)}${p.honor ? ` <span class="badge amber">🏅×${p.honor}</span>` : ''}</span>
+                <span class="pts">${p.points}점</span>
+              </div>`).join('')}</div>`
+            : `<p>도시가 무너져 <b>모두 패배</b>했어요. 점수는 의미가 없어요.<br><span class="muted">무엇이 부족했을까요 — 자원일까요, 신뢰일까요?</span></p>
+               <div class="podium">${(g.ranking || []).map(p => `
+              <div class="rank-row"><span class="r">·</span><span>${esc(p.name)}</span><span class="pts muted">${p.points}점</span></div>`).join('')}</div>`}
+          ${g.history ? `<p class="muted" style="margin-top:8px;font-size:13px">라운드 기록: ${g.history.map(h => h ? (h.skipped ? '–' : h.ok ? '🛡' : '💥') : '–').join(' ')}</p>` : ''}
+        </div>`;
+      }).join('')}
+    </div>
+    <div class="card">
+      <h3>💬 토론 질문 (디브리핑)</h3>
+      <p>① 왜 세금은 자발적 기부가 아니라 강제일까?<br>
+      ② 기여가 익명이 아니었다면 우리 모둠은 어떻게 달라졌을까?<br>
+      ③ 도시가 무너진 모둠은 무엇이 부족했을까 — 자원일까, 신뢰일까?<br>
+      ④ 우승한 사람은 모둠에 도움이 된 사람일까?</p>
+    </div>
+    <div class="row">
+      <button class="btn big" onclick="rematch()">🔁 같은 모둠으로 한 판 더</button>
+      <button class="btn big ghost" onclick="newRoom()">새 게임 방 만들기</button>
+    </div>
+    <p class="muted center" style="margin-top:10px">한 판 더: 참가자는 그대로, 점수만 새로 시작해요. 학생 기기도 자동으로 따라와요.</p>
+  `;
+}
+window.rematch = () => api('rematch');
+window.newRoom = () => {
+  if (!confirm('이 방을 떠나 새 방을 만들까요?')) return;
+  localStorage.removeItem('bp_teacher');
+  session = null; S = null; lastJSON = '';
+  if (pollTimer) clearInterval(pollTimer);
+  renderCreate();
+};
+</script>
+</body>
+</html>
