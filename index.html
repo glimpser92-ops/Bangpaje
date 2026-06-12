@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="방파제 교실용 세미 협력 게임의 학생 화면과 교사 화면 선택 페이지."
+    />
+    <title>방파제</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell role-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Classroom social simulation</p>
+          <h1>방파제</h1>
+        </div>
+      </header>
+
+      <main class="role-screen" aria-label="방파제 시작">
+        <section class="lobby-demo" aria-labelledby="demoTitle">
+          <div class="demo-copy">
+            <span class="role-kicker">상호작용 예제</span>
+            <h2 id="demoTitle">한 라운드를 눌러 보며 이해하기</h2>
+            <p id="demoPhase">살아남으려면 협력해야 하지만, 덜 내고 남기면 개인 점수가 커집니다.</p>
+            <div class="demo-progress" id="demoStepLabel">1 / 8</div>
+            <div class="demo-controls" aria-label="예제 진행">
+              <button id="demoPrevButton" type="button">이전</button>
+              <button id="demoNextButton" type="button">다음</button>
+              <button id="demoResetButton" type="button">처음</button>
+            </div>
+          </div>
+
+          <div class="demo-board" aria-live="polite">
+            <div class="demo-storm-row">
+              <div class="demo-storm-card">
+                <span>공개 폭풍</span>
+                <strong id="demoVisibleStorm">+20</strong>
+              </div>
+              <div class="demo-storm-card hidden">
+                <span>숨은 폭풍</span>
+                <strong id="demoHiddenStorm">+?</strong>
+              </div>
+              <div class="demo-storm-card total">
+                <span>필요 합계</span>
+                <strong id="demoStormTotal">?</strong>
+              </div>
+            </div>
+
+            <div class="demo-meter-wrap" aria-label="공동 금고 합계">
+              <div class="demo-meter-label">
+                <span>공동 금고</span>
+                <strong id="demoPublicTotal">0 / ?</strong>
+              </div>
+              <div class="demo-meter">
+                <span id="demoPublicMeter"></span>
+              </div>
+            </div>
+
+            <div class="demo-family-grid" id="demoFamilyGrid"></div>
+
+            <div class="demo-result" id="demoResult">
+              <strong>예보 확인 중</strong>
+              <span>아직 아무도 기여하지 않았습니다.</span>
+            </div>
+
+            <div class="demo-step-dots" aria-hidden="true" id="demoStepDots"></div>
+          </div>
+
+          <aside class="demo-guide" aria-labelledby="demoGuideTitle">
+            <span class="role-kicker">게임 전체 흐름</span>
+            <h3 id="demoGuideTitle">처음부터 끝까지</h3>
+            <ol id="demoGuideList"></ol>
+          </aside>
+        </section>
+
+        <section class="role-layout" aria-label="화면 선택">
+          <section class="role-card teacher-role" aria-labelledby="teacherRoleTitle">
+            <span class="role-kicker">수업 진행</span>
+            <strong id="teacherRoleTitle">교사 화면</strong>
+            <span>방을 열면 라운드, 협상, 비밀 제출, 제한 공개 판정을 진행할 수 있습니다.</span>
+            <button class="primary-button" id="createRoomButton" type="button">방 열기</button>
+            <a class="text-button link-button fallback-link" href="./teacher.html">방 없이 열기</a>
+          </section>
+
+          <section class="role-card student-role" aria-labelledby="studentRoleTitle">
+            <span class="role-kicker">모둠 플레이</span>
+            <strong id="studentRoleTitle">학생 화면</strong>
+            <span>선생님이 알려 준 방 코드로 들어가 자원을 받고 비밀 기여를 제출합니다.</span>
+            <form class="join-form" id="joinRoomForm">
+              <label>
+                <span>방 코드</span>
+                <input id="roomCodeInput" type="text" inputmode="latin" autocomplete="off" maxlength="6" placeholder="예: 7KQ2" />
+              </label>
+              <label>
+                <span>이름</span>
+                <input id="studentNameInput" type="text" autocomplete="name" maxlength="16" placeholder="예: 민준" />
+              </label>
+              <button class="primary-button" type="submit">참여하기</button>
+            </form>
+            <a class="text-button link-button fallback-link" href="./student.html">혼자 연습하기</a>
+          </section>
+        </section>
+      </main>
+      <p class="lobby-status" id="lobbyStatus" aria-live="polite"></p>
+    </div>
+    <script src="./lobby.js"></script>
+  </body>
+</html>

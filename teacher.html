@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="방파제 v3 교사 화면: 비밀 기여 제출 현황, 제한 공개 판정, 도시 피해와 강화 관리."
+    />
+    <title>방파제 - 교사 화면</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell teacher-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Teacher control board</p>
+          <h1>교사 화면</h1>
+        </div>
+        <div class="topbar-actions" aria-label="교사 메뉴">
+          <a class="text-button link-button" href="./">시작 화면</a>
+          <button class="text-button" id="resetClassButton" type="button">새 수업</button>
+        </div>
+      </header>
+
+      <main class="teacher-layout">
+        <section class="teacher-panel storm-master" aria-labelledby="stormMasterTitle">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">라운드 진행</p>
+              <h2 id="stormMasterTitle">폭풍과 기준 기여</h2>
+            </div>
+            <div class="month-badge" id="teacherRoundBadge">0 / 6</div>
+          </div>
+
+          <div class="room-banner" id="teacherRoomBanner" hidden>
+            <div>
+              <span>참여 코드</span>
+              <strong id="teacherRoomCode">----</strong>
+            </div>
+            <div>
+              <span>학생 접속</span>
+              <strong id="teacherStudentCount">0명</strong>
+            </div>
+            <div class="room-link-box">
+              <span>참여 주소</span>
+              <button type="button" id="copyJoinLinkButton">복사</button>
+            </div>
+          </div>
+
+          <div class="teacher-storm-grid v3-storm-grid" aria-label="교사용 라운드 카드">
+            <div class="teacher-storm-card">
+              <span>현재 단계</span>
+              <strong id="teacherPhaseBadge">대기</strong>
+              <small>교사가 단계 전환</small>
+            </div>
+            <div class="teacher-storm-card">
+              <span>공개 폭풍</span>
+              <strong id="teacherVisibleStorm">-</strong>
+              <small>학생에게 공개</small>
+            </div>
+            <div class="teacher-storm-card hidden">
+              <span>숨은 파고</span>
+              <strong id="teacherHiddenStorm">?</strong>
+              <small id="teacherHiddenRange">예보 전</small>
+            </div>
+            <div class="teacher-storm-card total">
+              <span>항구 기준</span>
+              <strong id="teacherHarborStandard">-</strong>
+              <small>기준 이상 여부만 사용</small>
+            </div>
+          </div>
+
+          <div class="teacher-actions">
+            <button class="primary-button" id="startRoundButton" type="button">라운드 시작</button>
+            <button class="primary-button secondary visible-secondary" id="negotiationButton" type="button">협상 단계로</button>
+            <button class="primary-button secondary visible-secondary" id="contributionPhaseButton" type="button">비밀 기여 열기</button>
+            <button class="primary-button secondary visible-secondary danger-action" id="judgeRoundButton" type="button">라운드 판정</button>
+            <button class="primary-button secondary visible-secondary" id="resolveVoteButton" type="button" hidden>강화 투표 종료</button>
+          </div>
+
+          <div class="teacher-note">
+            <strong>정보 공개 원칙</strong>
+            <span>정확한 개인 기여량은 공개하지 않습니다. 결과는 총합, 성공/실패, 기준 미달자 수, 명예 대상만 보여 줍니다.</span>
+          </div>
+        </section>
+
+        <section class="teacher-panel timer-panel" aria-labelledby="timerTitle">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">협상 시간</p>
+              <h2 id="timerTitle">모래시계</h2>
+            </div>
+          </div>
+
+          <div class="timer-display" id="timerDisplay">02:00</div>
+          <div class="timer-controls" aria-label="타이머 조작">
+            <button type="button" data-minutes="1">1분</button>
+            <button type="button" data-minutes="2" class="active">2분</button>
+            <button type="button" id="startTimerButton">시작</button>
+            <button type="button" id="pauseTimerButton">정지</button>
+            <button type="button" id="resetTimerButton">리셋</button>
+          </div>
+        </section>
+
+        <section class="teacher-panel roster-panel" id="teacherRosterPanel" aria-labelledby="rosterTitle" hidden>
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">참여 학생</p>
+              <h2 id="rosterTitle">입장과 제출 현황</h2>
+            </div>
+            <div class="submit-badge" id="teacherSubmitBadge">0 / 0</div>
+          </div>
+          <div class="roster-list" id="teacherRosterList"></div>
+        </section>
+
+        <section class="teacher-panel groups-panel" aria-labelledby="groupsTitle">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">공동체 상태</p>
+              <h2 id="groupsTitle">항구 생존판</h2>
+            </div>
+          </div>
+          <div class="group-list" id="groupList"></div>
+        </section>
+
+        <section class="teacher-panel debrief-panel" aria-labelledby="debriefTitle">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">정리 토론</p>
+              <h2 id="debriefTitle">디브리핑 질문</h2>
+            </div>
+          </div>
+          <div class="debrief-list" id="debriefList"></div>
+        </section>
+      </main>
+    </div>
+
+    <script src="./teacher.js"></script>
+  </body>
+</html>

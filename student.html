@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="방파제 v3 학생 화면: 자원을 받고, 몰래 기여하고, 제한 공개 결과를 확인하는 교실용 사회 시뮬레이션."
+    />
+    <title>방파제 - 학생 화면</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Classroom social simulation</p>
+          <h1>방파제</h1>
+        </div>
+        <div class="topbar-actions" aria-label="학생 메뉴">
+          <a class="text-button link-button" href="./">시작 화면</a>
+          <a class="text-button link-button" href="./teacher.html">교사 화면</a>
+        </div>
+      </header>
+
+      <section class="room-banner student-room-banner" id="studentRoomBanner" hidden>
+        <div>
+          <span>참여 방</span>
+          <strong id="studentRoomCode">----</strong>
+        </div>
+        <div>
+          <span>이름</span>
+          <strong id="studentRoomName">학생</strong>
+        </div>
+        <div>
+          <span>현재 단계</span>
+          <strong id="studentRoomStorm">대기</strong>
+        </div>
+      </section>
+
+      <main class="game-layout">
+        <section class="board-panel" aria-labelledby="boardTitle">
+          <div class="board-header">
+            <div>
+              <p class="eyebrow">도시 상황</p>
+              <h2 id="boardTitle">폭풍 앞의 항구</h2>
+            </div>
+            <div class="month-badge" id="monthBadge">0 / 6</div>
+          </div>
+
+          <div class="harbor-scene" id="harborScene" aria-label="항구 도시와 방파제 상태">
+            <svg viewBox="0 0 880 420" role="img" aria-labelledby="harborTitle harborDesc">
+              <title id="harborTitle">폭풍을 맞는 항구 도시</title>
+              <desc id="harborDesc">피해와 폭풍 압박에 따라 파도, 하늘, 방파제가 변합니다.</desc>
+              <defs>
+                <linearGradient id="skyGradient" x1="0" x2="0" y1="0" y2="1">
+                  <stop offset="0%" stop-color="#c8e1e5" />
+                  <stop offset="58%" stop-color="#ecd09c" />
+                  <stop offset="100%" stop-color="#f6f1df" />
+                </linearGradient>
+                <linearGradient id="seaGradient" x1="0" x2="0" y1="0" y2="1">
+                  <stop offset="0%" stop-color="#2c9aa1" />
+                  <stop offset="100%" stop-color="#175c65" />
+                </linearGradient>
+              </defs>
+              <rect class="sky" width="880" height="420" fill="url(#skyGradient)" />
+              <g class="storm-clouds">
+                <ellipse cx="160" cy="82" rx="90" ry="26" />
+                <ellipse cx="238" cy="84" rx="118" ry="33" />
+                <ellipse cx="594" cy="74" rx="116" ry="31" />
+                <ellipse cx="702" cy="85" rx="91" ry="25" />
+              </g>
+              <path class="lightning" d="M690 112 L640 190 L684 182 L628 282 L650 206 L611 214 Z" />
+              <g class="sun">
+                <circle cx="747" cy="128" r="44" />
+                <circle cx="747" cy="128" r="65" />
+              </g>
+              <g class="city">
+                <path d="M150 257 L190 213 L220 257 Z" />
+                <rect x="205" y="196" width="82" height="82" rx="4" />
+                <rect x="304" y="160" width="70" height="118" rx="4" />
+                <rect x="388" y="204" width="94" height="74" rx="4" />
+                <path d="M514 278 L514 185 L562 149 L610 185 L610 278 Z" />
+                <rect x="635" y="214" width="90" height="64" rx="4" />
+                <path d="M110 278 H758 V310 H110 Z" />
+              </g>
+              <g class="windows">
+                <rect x="226" y="216" width="15" height="24" rx="2" />
+                <rect x="252" y="216" width="15" height="24" rx="2" />
+                <rect x="326" y="183" width="15" height="24" rx="2" />
+                <rect x="352" y="183" width="15" height="24" rx="2" />
+                <rect x="538" y="202" width="15" height="24" rx="2" />
+                <rect x="574" y="202" width="15" height="24" rx="2" />
+                <rect x="665" y="232" width="15" height="24" rx="2" />
+              </g>
+              <path class="breakwater base" d="M72 327 C183 292 305 303 418 324 C546 348 656 349 810 314" />
+              <path class="breakwater damage" d="M72 327 C183 292 305 303 418 324 C546 348 656 349 810 314" />
+              <rect class="sea" x="0" y="305" width="880" height="115" fill="url(#seaGradient)" />
+              <g class="waves">
+                <path d="M-20 335 C50 316 110 354 178 335 S306 316 374 335 S502 354 570 335 S698 316 770 335 S902 354 960 335" />
+                <path d="M-36 374 C30 356 102 390 170 374 S298 356 366 374 S494 390 562 374 S690 356 758 374 S890 390 948 374" />
+              </g>
+            </svg>
+          </div>
+
+          <div class="status-grid" aria-label="핵심 상태">
+            <div class="status-item">
+              <span>도시 피해</span>
+              <strong id="breachStatus">0 / 3</strong>
+            </div>
+            <div class="status-item">
+              <span>공개 폭풍</span>
+              <strong id="visibleStorm">-</strong>
+            </div>
+            <div class="status-item">
+              <span>숨은 파고</span>
+              <strong id="hiddenRange">-</strong>
+            </div>
+            <div class="status-item">
+              <span>방파제 강화</span>
+              <strong id="honorBonus">0</strong>
+            </div>
+          </div>
+
+          <ol class="round-steps" aria-label="현재 라운드 단계">
+            <li data-step="storm">폭풍 예보</li>
+            <li data-step="council">협상</li>
+            <li data-step="contribute">비밀 기여</li>
+            <li data-step="resolve">판정</li>
+            <li data-step="score">결과</li>
+          </ol>
+        </section>
+
+        <section class="action-panel" aria-labelledby="actionTitle">
+          <div class="panel-heading">
+            <p class="eyebrow">내 선택</p>
+            <h2 id="actionTitle">비밀 기여</h2>
+          </div>
+
+          <div class="storm-cards" id="stormCards" aria-label="라운드 정보"></div>
+
+          <div class="contribution-box">
+            <div class="contribution-header">
+              <span class="field-label">이번 라운드 기여량</span>
+              <strong id="contributionValue">0</strong>
+            </div>
+            <input id="contributionSlider" type="range" min="0" max="10" value="0" />
+            <p id="contributionHint">선생님이 비밀 기여 단계를 열면 제출할 수 있습니다.</p>
+          </div>
+
+          <div class="decision-readout" id="decisionReadout"></div>
+
+          <div class="vote-box" id="voteBox" hidden>
+            <p class="vote-title">방파제 강화 사용 투표</p>
+            <p class="vote-hint" id="voteHint"></p>
+            <div class="vote-buttons">
+              <button class="primary-button" id="voteUseButton" type="button">강화 사용 (피해 막기)</button>
+              <button class="primary-button secondary" id="voteSkipButton" type="button">사용 안 함</button>
+            </div>
+          </div>
+
+          <button class="primary-button" id="commitButton" type="button">비밀 기여 제출</button>
+        </section>
+
+        <aside class="houses-panel" aria-labelledby="housesTitle">
+          <div class="panel-heading">
+            <p class="eyebrow">공개 정보</p>
+            <h2 id="housesTitle">참가자와 내 점수</h2>
+          </div>
+          <div class="houses-list" id="housesList"></div>
+        </aside>
+      </main>
+
+      <section class="log-panel" aria-labelledby="logTitle">
+        <div class="panel-heading">
+          <p class="eyebrow">항구 기록</p>
+          <h2 id="logTitle">제한 공개 결과</h2>
+        </div>
+        <div class="log-list" id="logList" aria-live="polite"></div>
+      </section>
+    </div>
+
+    <script src="./game.js"></script>
+  </body>
+</html>
